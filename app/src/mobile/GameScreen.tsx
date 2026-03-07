@@ -11,12 +11,14 @@ import MiniPiece from '../common/MiniPiece';
 import SpeedBar from '../common/SpeedBar';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useTouchInput } from '../hooks/useTouchInput';
+import type { AiDifficulty } from '../../../shared/game/ai';
 
 const HIDDEN_NEXT: [number, number][] = [];
 const BAR_HEIGHT = 64;
 
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
+  aiDifficulty?: AiDifficulty;
 }
 
 function getVisibleHeight(): number {
@@ -50,8 +52,10 @@ function useMobileCellSize(): number {
   return size;
 }
 
-export default function MobileGameScreen({ onGameEnd }: Props) {
-  const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next, handleAction } = useGameEngine();
+export default function MobileGameScreen({ onGameEnd, aiDifficulty }: Props) {
+  const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next, handleAction } = useGameEngine(
+    aiDifficulty ? { aiPlayer: 2, aiDifficulty } : undefined,
+  );
   const cellSize = useMobileCellSize();
   const boardRef = useRef<HTMLDivElement>(null);
   useTouchInput(state.active, handleAction, boardRef);

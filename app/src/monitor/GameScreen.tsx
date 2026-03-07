@@ -7,6 +7,7 @@ import BoardComponent from '../common/Board';
 import Panel from './Panel';
 import Divider from './Divider';
 import { useGameEngine } from '../hooks/useGameEngine';
+import type { AiDifficulty } from '../../../shared/game/ai';
 import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
 
@@ -15,10 +16,13 @@ const HIDDEN_NEXT: [number, number][] = [];
 
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
+  aiDifficulty?: AiDifficulty;
 }
 
-export default function GameScreen({ onGameEnd }: Props) {
-  const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next } = useGameEngine();
+export default function GameScreen({ onGameEnd, aiDifficulty }: Props) {
+  const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next } = useGameEngine(
+    aiDifficulty ? { aiPlayer: 2, aiDifficulty } : undefined,
+  );
 
   // Notify parent when game ends
   if (state.phase === 'ended' && state.winner !== undefined) {
