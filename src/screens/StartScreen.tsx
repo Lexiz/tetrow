@@ -76,25 +76,31 @@ export default function StartScreen({ onStart }: Props) {
         </div>
       </div>
 
-      {/* Controls reference — stacked vertically */}
-      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      {/* Controls reference — stacked vertically, columns aligned */}
+      <div style={{
+        zIndex: 1,
+        display: 'grid',
+        gridTemplateColumns: '70px auto',
+        gap: '6px 10px',
+        alignItems: 'center',
+      }}>
         {([
           ['← →',   'Move'],
           ['↑ / Z',  'Rotate'],
           ['↓',      'Soft Drop'],
           ['SPACE',  'Hard Drop'],
-        ] as [string, string][]).map(([k, a]) => (
-          <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 10, color: C.p1,
-              background: '#080812', border: `1px solid ${C.p1}55`,
-              padding: '2px 8px', borderRadius: 3,
-              minWidth: 60, textAlign: 'center',
-              boxShadow: `0 0 8px ${C.p1}33, inset 0 0 6px ${C.p1}11`,
-            }}>{k}</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.7 }}>{a}</span>
-          </div>
-        ))}
+        ] as [string, string][]).map(([k, a]) => ([
+          <span key={k} style={{
+            fontFamily: 'monospace', fontSize: 10, color: C.p1,
+            background: '#080812', border: `1px solid ${C.p1}55`,
+            padding: '2px 8px', borderRadius: 3,
+            textAlign: 'center', display: 'block',
+            boxShadow: `0 0 8px ${C.p1}33, inset 0 0 6px ${C.p1}11`,
+          }}>{k}</span>,
+          <span key={`${k}-label`} style={{
+            fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.7,
+          }}>{a}</span>,
+        ]))}
       </div>
     </div>
   );
