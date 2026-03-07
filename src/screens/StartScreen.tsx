@@ -65,11 +65,11 @@ export default function StartScreen({ onStart }: Props) {
         <button onClick={onStart} style={{
           padding: '14px 56px',
           background: C.bg,
-          border: `1.5px solid rgba(255,255,255,0.2)`,
+          border: `1.5px solid rgba(255,200,140,0.45)`,
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
           letterSpacing: 4, color: C.white, cursor: 'pointer',
-          boxShadow: `0 0 30px ${C.p1}33, 0 0 60px ${C.p1}18, 0 0 90px ${C.p2}12, inset 0 0 20px rgba(255,122,0,0.06), inset 0 0 40px rgba(0,229,255,0.04)`,
+          boxShadow: `0 0 4px rgba(255,180,100,0.4), 0 0 8px rgba(255,150,60,0.15), inset 0 0 8px rgba(255,180,100,0.06)`,
         }}>START MATCH</button>
         <div style={{ color: C.text, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3, opacity: 0.5 }}>
           ARROWS + SPACE
