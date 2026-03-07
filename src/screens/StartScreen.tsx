@@ -44,7 +44,8 @@ export default function StartScreen({ onStart }: Props) {
       <div style={{ textAlign: 'center', zIndex: 1 }}>
         <div style={{
           fontFamily: 'monospace', fontSize: 9,
-          letterSpacing: 7, color: C.dim, marginBottom: 10,
+          letterSpacing: 7, color: C.text, marginBottom: 10,
+          opacity: 0.7,
         }}>
           TWO PLAYERS · ONE BOARD
         </div>
@@ -56,26 +57,27 @@ export default function StartScreen({ onStart }: Props) {
           WebkitTextFillColor: 'transparent',
           filter: `drop-shadow(0 0 28px ${C.p1}66) drop-shadow(0 0 56px ${C.p2}33)`,
           lineHeight: 1,
-        }}>CHESS-TET</div>
+        }}>CHESTET</div>
       </div>
 
       {/* Start button */}
-      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <button onClick={onStart} style={{
           padding: '14px 56px',
-          background: `linear-gradient(135deg, ${C.p1}, ${C.p2})`,
-          border: 'none', borderRadius: 4,
+          background: C.bg,
+          border: `1.5px solid rgba(255,255,255,0.2)`,
+          borderRadius: 4,
           fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
-          letterSpacing: 4, color: '#050508', cursor: 'pointer',
-          boxShadow: `0 0 30px ${C.p1}88, 0 0 60px ${C.p1}33, 0 0 90px ${C.p2}22`,
+          letterSpacing: 4, color: C.white, cursor: 'pointer',
+          boxShadow: `0 0 30px ${C.p1}33, 0 0 60px ${C.p1}18, 0 0 90px ${C.p2}12, inset 0 0 20px rgba(255,122,0,0.06), inset 0 0 40px rgba(0,229,255,0.04)`,
         }}>START MATCH</button>
-        <div style={{ color: C.dim, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3 }}>
+        <div style={{ color: C.text, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3, opacity: 0.5 }}>
           ARROWS + SPACE
         </div>
       </div>
 
-      {/* Controls reference */}
-      <div style={{ zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 18px' }}>
+      {/* Controls reference — stacked vertically */}
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
         {([
           ['← →',   'Move'],
           ['↑ / Z',  'Rotate'],
@@ -87,10 +89,10 @@ export default function StartScreen({ onStart }: Props) {
               fontFamily: 'monospace', fontSize: 10, color: C.p1,
               background: '#080812', border: `1px solid ${C.p1}55`,
               padding: '2px 8px', borderRadius: 3,
-              minWidth: 110, textAlign: 'center',
+              minWidth: 60, textAlign: 'center',
               boxShadow: `0 0 8px ${C.p1}33, inset 0 0 6px ${C.p1}11`,
             }}>{k}</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: C.dim }}>{a}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.7 }}>{a}</span>
           </div>
         ))}
       </div>
