@@ -32,11 +32,12 @@ export default function App() {
     return (
       <div style={{
         background: '#030306',
-        minHeight: '100vh',
+        height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}>
         {screen === 'start' && <StartScreen onStart={() => setScreen('game')} isMobile />}
         {screen === 'game' && <MobileGameScreen onGameEnd={handleGameEnd} />}
@@ -50,9 +51,6 @@ export default function App() {
             onPlayAgain={() => setScreen('start')}
           />
         )}
-        <div style={{ fontFamily: 'monospace', fontSize: 7, color: C.dim, letterSpacing: 2, marginTop: 8 }}>
-          MOBILE · CHESTET
-        </div>
       </div>
     );
   }

@@ -13,7 +13,7 @@ export default function StartScreen({ onStart, isMobile }: Props) {
   return (
     <div style={{
       width: isMobile ? '100vw' : W,
-      height: isMobile ? '100vh' : H,
+      height: isMobile ? '100dvh' : H,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       background: C.bg, gap: isMobile ? 22 : 28,
