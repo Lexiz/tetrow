@@ -7,7 +7,7 @@ export const CONFIG = {
 
   // Scoring — index = number of lines cleared (0=no clear, 1=single, 2=double, 3=triple, 4=tetris)
   CLEAR_SCORES: [0, 100, 300, 500, 800],
-  OPPONENT_CELL_BONUS: 10,  // points per opponent-owned cell removed in a clear
+  OPPONENT_CELL_BONUS: 5,   // points per opponent-owned cell removed in a clear
   TOPOUT_PENALTY: 400,      // subtracted from first player to top out at final resolution
 
   // Speed bands S0–S6 — each player's gravity is driven by their own score
