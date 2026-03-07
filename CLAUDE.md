@@ -9,11 +9,11 @@
 3. Push the branch: `git push -u origin feature/<short-description>`
 4. Create a PR: `gh pr create --base main`
 5. Merge immediately: `gh pr merge --squash --delete-branch`
-6. Deploy after merge: `git checkout main && git pull && cd browser-monitor && npm run build && npx gh-pages -d dist`
+6. Deploy after merge: `git checkout main && git pull && cd app && npm run build && cd .. && npx gh-pages -d app/dist`
 
 Branch naming: `feature/`, `fix/`, `refactor/` prefixes.
 
-## Monorepo Structure
+## Project Structure
 
 ```
 tetchess/
@@ -25,13 +25,15 @@ tetchess/
 │   ├── config.ts
 │   ├── types.ts
 │   └── theme.ts
-├── browser-monitor/     ← desktop/monitor version (React + Vite)
+├── app/                 ← single Vite+React app with responsive layout
 │   ├── src/
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.ts
-├── browser-mobile/      ← mobile-optimized version (React + Vite)
-│   ├── src/
+│   │   ├── monitor/     ← desktop layout components (GameScreen, Panel, Divider)
+│   │   ├── mobile/      ← mobile layout components (to be built)
+│   │   ├── common/      ← shared UI (Cell, Board, ScorePopup, LineClearEffect, etc.)
+│   │   ├── hooks/       ← useGameEngine, useInput, useIsMobile
+│   │   ├── screens/     ← StartScreen, EndScreen
+│   │   ├── App.tsx      ← detects device → renders monitor or mobile layout
+│   │   └── main.tsx
 │   ├── index.html
 │   ├── package.json
 │   └── vite.config.ts
@@ -40,23 +42,22 @@ tetchess/
 └── CLAUDE.md
 ```
 
-- **Shared code** lives in `shared/` — both apps import from it via relative paths
-- **Never duplicate** game logic into app directories
-- **Each app** has its own `package.json`, `tsconfig.json`, and `vite.config.ts`
+- `useIsMobile()` hook detects screen width < 768px
+- App.tsx switches between monitor and mobile component trees
+- Shared game logic in `shared/`, shared UI in `app/src/common/`
 
 ## Deployment
 
-- Live site (monitor): https://lexiz.github.io/tetchess/
-- Build: `cd browser-monitor && npm run build`
-- Deploy: `npx gh-pages -d browser-monitor/dist`
+- Live site: https://lexiz.github.io/tetchess/
+- Build: `cd app && npm run build`
+- Deploy: `npx gh-pages -d app/dist`
 
 ## Tech Stack
 
-- React + TypeScript + Vite (browser builds)
-- npm workspaces for monorepo
+- React + TypeScript + Vite
+- npm workspaces
 - Game logic is pure TS in `shared/` (reusable across platforms)
-- Future: React Native + Expo for native mobile
 
 ## Testing Controls (temporary)
 
-Arrow keys control both players (single-person testing mode). Restore split controls (P1: arrows, P2: WASD) in `browser-monitor/src/hooks/useInput.ts` before shipping.
+Arrow keys control both players (single-person testing mode). Restore split controls in `app/src/hooks/useInput.ts` before shipping.

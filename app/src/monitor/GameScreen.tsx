@@ -3,12 +3,12 @@ import { CONFIG } from '../../../shared/config';
 import type { TetrominoType } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import { getShape } from '../../../shared/game/pieces';
-import BoardComponent from './Board';
+import BoardComponent from '../common/Board';
 import Panel from './Panel';
 import Divider from './Divider';
 import { useGameEngine } from '../hooks/useGameEngine';
-import ScorePopup from './ScorePopup';
-import LineClearEffect from './LineClearEffect';
+import ScorePopup from '../common/ScorePopup';
+import LineClearEffect from '../common/LineClearEffect';
 
 // Placeholder cells for hidden next-piece preview
 const HIDDEN_NEXT: [number, number][] = [];
