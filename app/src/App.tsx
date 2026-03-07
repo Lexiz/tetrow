@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { C } from '../../shared/theme';
+import { APP_VERSION } from '../../shared/version';
 import type { Screen, Owner } from '../../shared/types';
 import type { PlayerStats } from '../../shared/game/engine';
 import type { AiDifficulty } from '../../shared/game/ai';
@@ -165,7 +166,7 @@ export default function App() {
         )}
       </div>
       <div style={{ marginTop: 16, color: C.dim, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3 }}>
-        CHESTET · v0.2
+        CHESTET · v{APP_VERSION}
       </div>
     </div>
   );
