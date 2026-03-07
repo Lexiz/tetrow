@@ -68,22 +68,25 @@ export interface ClearResult {
   board: SettledBoard;
   linesCleared: number;
   opponentCellsCleared: number;
+  clearedRowIndices: number[];
 }
 
 export function clearLines(board: SettledBoard, scorer: Owner): ClearResult {
   const opponent: Owner = scorer === 1 ? 2 : 1;
   let linesCleared = 0;
   let opponentCellsCleared = 0;
+  const clearedRowIndices: number[] = [];
 
-  const kept = board.filter(row => {
+  const kept = board.filter((row, idx) => {
     const full = row.every(cell => cell !== null);
     if (full) {
       linesCleared++;
       opponentCellsCleared += row.filter(c => c === opponent).length;
+      clearedRowIndices.push(idx);
     }
     return !full;
   });
 
   while (kept.length < ROWS) kept.unshift(new Array<Owner | null>(COLS).fill(null));
-  return { board: kept as SettledBoard, linesCleared, opponentCellsCleared };
+  return { board: kept as SettledBoard, linesCleared, opponentCellsCleared, clearedRowIndices };
 }

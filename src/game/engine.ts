@@ -30,6 +30,9 @@ export interface GameState {
 
   // Last line-clear info for score popup
   lastClear: { base: number; bonus: number; player: Owner; id: number } | null;
+
+  // Row indices that were just cleared (for animation); empty when no clear
+  clearedRows: number[];
 }
 
 export type Action =
@@ -112,7 +115,7 @@ function doLock(state: GameState): GameState {
   const owner = state.active;
   let board = lockPiece(state.piece, state.board, owner);
 
-  const { board: cleared, linesCleared, opponentCellsCleared } = clearLines(board, owner);
+  const { board: cleared, linesCleared, opponentCellsCleared, clearedRowIndices } = clearLines(board, owner);
   board = cleared;
 
   const { base, bonus } = calcScoreParts(linesCleared, opponentCellsCleared);
@@ -127,7 +130,7 @@ function doLock(state: GameState): GameState {
 
   // Equalizer turn just ended → resolve game
   if (state.phase === 'equalizer') {
-    return resolveEnd({ ...state, toppedOut: state.toppedOut, p2HasPlaced, lastClear }, board, scores);
+    return resolveEnd({ ...state, toppedOut: state.toppedOut, p2HasPlaced, lastClear, clearedRows: clearedRowIndices }, board, scores);
   }
 
   // Normal turn: spawn next piece for the waiting player
@@ -136,7 +139,7 @@ function doLock(state: GameState): GameState {
   const nextPiece = spawnPiece(nextType);
 
   if (!isValid(nextPiece, board)) {
-    return handleTopOut({ ...state, lastClear }, board, scores, nextActive, p2HasPlaced);
+    return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices }, board, scores, nextActive, p2HasPlaced);
   }
 
   // Draw a replacement "next" piece for the player who just locked
@@ -158,6 +161,7 @@ function doLock(state: GameState): GameState {
     scores,
     p2HasPlaced,
     lastClear,
+    clearedRows: clearedRowIndices,
   };
 }
 
@@ -240,6 +244,7 @@ export function createInitialState(): GameState {
     winner: null,
     p2HasPlaced: false,
     lastClear: null,
+    clearedRows: [],
   };
 }
 

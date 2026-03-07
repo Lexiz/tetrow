@@ -7,6 +7,7 @@ import Panel from './Panel';
 import Divider from './Divider';
 import { useGameEngine } from '../hooks/useGameEngine';
 import ScorePopup from './ScorePopup';
+import LineClearEffect from './LineClearEffect';
 
 // Placeholder cells for hidden next-piece preview
 const HIDDEN_NEXT: [number, number][] = [];
@@ -52,6 +53,13 @@ export default function GameScreen({ onGameEnd }: Props) {
                 key={state.lastClear.id}
                 base={state.lastClear.base}
                 bonus={state.lastClear.bonus}
+                player={state.lastClear.player}
+              />
+            )}
+            {state.lastClear && state.clearedRows.length > 0 && (
+              <LineClearEffect
+                key={`clear-${state.lastClear.id}`}
+                rows={state.clearedRows}
                 player={state.lastClear.player}
               />
             )}

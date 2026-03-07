@@ -9,11 +9,10 @@ interface Props {
 }
 
 export default function ScorePopup({ base, bonus, player }: Props) {
-  const [visible, setVisible] = useState(true);
+  const [phase, setPhase] = useState<'in' | 'out'>('in');
 
   useEffect(() => {
-    setVisible(true);
-    const id = setTimeout(() => setVisible(false), 900);
+    const id = setTimeout(() => setPhase('out'), 1600);
     return () => clearTimeout(id);
   }, []);
 
@@ -24,27 +23,30 @@ export default function ScorePopup({ base, bonus, player }: Props) {
     <div
       style={{
         position: 'absolute',
-        top: '40%',
+        top: '35%',
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: phase === 'in'
+          ? 'translateX(-50%) scale(1)'
+          : 'translateX(-50%) translateY(-40px) scale(0.8)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 2,
+        gap: 4,
         pointerEvents: 'none',
         zIndex: 5,
-        opacity: visible ? 1 : 0,
-        transition: 'opacity 0.4s ease-out, transform 0.9s ease-out',
-        ...(visible ? {} : { transform: 'translateX(-50%) translateY(-30px)' }),
+        opacity: phase === 'in' ? 1 : 0,
+        transition: 'opacity 0.5s ease-out, transform 1.2s ease-out',
       }}
     >
       <span
         style={{
           fontFamily: 'monospace',
-          fontSize: 18,
+          fontSize: 28,
           fontWeight: 900,
+          letterSpacing: 2,
           color: playerColor,
-          textShadow: `0 0 12px ${playerColor}`,
+          textShadow: `0 0 20px ${playerColor}, 0 0 40px ${playerColor}88`,
+          WebkitTextStroke: `0.5px ${playerColor}`,
         }}
       >
         +{base}
@@ -53,10 +55,11 @@ export default function ScorePopup({ base, bonus, player }: Props) {
         <span
           style={{
             fontFamily: 'monospace',
-            fontSize: 13,
-            fontWeight: 700,
+            fontSize: 18,
+            fontWeight: 900,
+            letterSpacing: 1,
             color: opponentColor,
-            textShadow: `0 0 10px ${opponentColor}`,
+            textShadow: `0 0 16px ${opponentColor}, 0 0 30px ${opponentColor}88`,
           }}
         >
           +{bonus}
