@@ -1,6 +1,7 @@
 import { C } from '../theme';
 import { CONFIG } from '../config';
 import type { TetrominoType } from '../types';
+import type { PlayerStats } from '../game/engine';
 import { getShape } from '../game/pieces';
 import BoardComponent from './Board';
 import Panel from './Panel';
@@ -13,7 +14,7 @@ import LineClearEffect from './LineClearEffect';
 const HIDDEN_NEXT: [number, number][] = [];
 
 interface Props {
-  onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null) => void;
+  onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
 }
 
 export default function GameScreen({ onGameEnd }: Props) {
@@ -98,7 +99,7 @@ export default function GameScreen({ onGameEnd }: Props) {
               color: C.dim, marginBottom: 12,
             }}>MATCH OVER</div>
             <button
-              onClick={() => onGameEnd(state.scores[0], state.scores[1], state.toppedOut)}
+              onClick={() => onGameEnd(state.scores[0], state.scores[1], state.toppedOut, state.stats)}
               style={{
                 padding: '12px 40px',
                 background: `linear-gradient(135deg, ${C.p1}, ${C.p2})`,

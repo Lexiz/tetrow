@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { C } from './theme';
 import type { Screen, Owner } from './types';
+import type { PlayerStats } from './game/engine';
 import GameScreen from './components/GameScreen';
 import StartScreen from './screens/StartScreen';
 import EndScreen from './screens/EndScreen';
@@ -9,14 +10,17 @@ interface MatchResult {
   p1Score: number;
   p2Score: number;
   toppedOut: Owner | null;
+  stats: [PlayerStats, PlayerStats];
 }
+
+const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start');
-  const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null });
+  const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
 
-  function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null) {
-    setResult({ p1Score, p2Score, toppedOut });
+  function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) {
+    setResult({ p1Score, p2Score, toppedOut, stats });
     setScreen('end');
   }
 
@@ -49,6 +53,7 @@ export default function App() {
             p2Score={result.p2Score}
             p1ToppedOut={result.toppedOut === 1}
             p2ToppedOut={result.toppedOut === 2}
+            stats={result.stats}
             onPlayAgain={() => setScreen('start')}
           />
         )}
