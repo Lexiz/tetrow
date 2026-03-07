@@ -1,6 +1,6 @@
-import { C } from '../theme';
-import { CONFIG } from '../config';
-import type { PlayerStats } from '../game/engine';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
+import type { PlayerStats } from '../../../shared/game/engine';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { Owner } from '../types';
-import { CONFIG } from '../config';
+import type { Owner } from '../../../shared/types';
+import { CONFIG } from '../../../shared/config';
 
 type InputAction = 'left' | 'right' | 'softDrop' | 'hardDrop' | 'rotateCW' | 'rotateCCW';
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { C } from './theme';
-import type { Screen, Owner } from './types';
-import type { PlayerStats } from './game/engine';
+import { C } from '../../shared/theme';
+import type { Screen, Owner } from '../../shared/types';
+import type { PlayerStats } from '../../shared/game/engine';
 import GameScreen from './components/GameScreen';
 import StartScreen from './screens/StartScreen';
 import EndScreen from './screens/EndScreen';

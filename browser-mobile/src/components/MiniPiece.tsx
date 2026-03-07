@@ -1,4 +1,4 @@
-import { C } from '../theme';
+import { C } from '../../../shared/theme';
 
 interface Props {
   // [x, y] coords within a 4×4 preview grid

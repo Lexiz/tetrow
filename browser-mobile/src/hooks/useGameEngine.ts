@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
-import type { Owner } from '../types';
+import type { Owner } from '../../../shared/types';
 import {
   gameReducer,
   createInitialState,
@@ -7,7 +7,7 @@ import {
   getBandIndex,
   getGravityMs,
   type GameState,
-} from '../game/engine';
+} from '../../../shared/game/engine';
 import { useInput } from './useInput';
 
 export function useGameEngine() {

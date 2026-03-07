@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { C } from '../theme';
-import { CONFIG } from '../config';
-import type { Owner } from '../types';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
+import type { Owner } from '../../../shared/types';
 
 const { CELL_SIZE, COLS } = CONFIG;
 const BOARD_W = COLS * CELL_SIZE + 4; // +4 for border
