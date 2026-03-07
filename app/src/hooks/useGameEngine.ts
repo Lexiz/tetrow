@@ -8,9 +8,17 @@ import {
   getGravityMs,
   type GameState,
 } from '../../../shared/game/engine';
+import { aiFindPlacement, type AiDifficulty } from '../../../shared/game/ai';
 import { useInput } from './useInput';
 
-export function useGameEngine() {
+interface EngineOptions {
+  aiPlayer?: Owner;          // which player the AI controls (2 for warm-up)
+  aiDifficulty?: AiDifficulty;
+}
+
+export function useGameEngine(options?: EngineOptions) {
+  const aiPlayer = options?.aiPlayer;
+  const aiDifficulty = options?.aiDifficulty ?? 'medium';
   const [state, dispatch] = useReducer(gameReducer, undefined, createInitialState);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -91,6 +99,48 @@ export function useGameEngine() {
   }, []);
 
   useInput(state.active, handleAction);
+
+  // ── AI turn ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!aiPlayer || state.phase === 'ended') return;
+    if (state.active !== aiPlayer) return;
+
+    // Small delay to make AI feel natural
+    const delay = 300 + Math.random() * 400;
+    const timer = setTimeout(() => {
+      const s = stateRef.current;
+      if (s.phase === 'ended' || s.active !== aiPlayer) return;
+
+      const placement = aiFindPlacement(s.board, s.piece.type, aiPlayer, aiDifficulty);
+      if (!placement) {
+        // No valid placement — just hard drop wherever
+        dispatch({ type: 'HARD_DROP' });
+        return;
+      }
+
+      // Execute rotation
+      const targetRot = placement.rot;
+      const currentRot = s.piece.rot;
+      const cwSteps = (targetRot - currentRot + 4) % 4;
+      const ccwSteps = (currentRot - targetRot + 4) % 4;
+
+      if (cwSteps <= ccwSteps) {
+        for (let i = 0; i < cwSteps; i++) dispatch({ type: 'ROTATE', cw: true });
+      } else {
+        for (let i = 0; i < ccwSteps; i++) dispatch({ type: 'ROTATE', cw: false });
+      }
+
+      // Execute horizontal movement
+      const dc = placement.col - s.piece.col;
+      const dir = dc > 0 ? 1 : -1;
+      for (let i = 0; i < Math.abs(dc); i++) dispatch({ type: 'MOVE', dc: dir });
+
+      // Hard drop
+      dispatch({ type: 'HARD_DROP' });
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [state.active, state.phase, aiPlayer, aiDifficulty]);
 
   // ── Derived display values ────────────────────────────────────────────────
   const displayBoard = state.phase !== 'ended' ? computeDisplayBoard(state) : state.board;
