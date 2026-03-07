@@ -1,6 +1,6 @@
-import type { Board } from '../types';
-import { C } from '../theme';
-import { CONFIG } from '../config';
+import type { Board } from '../../../shared/types';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
 import Cell from './Cell';
 
 const { COLS, CELL_SIZE } = CONFIG;

@@ -1,5 +1,5 @@
-import { C } from '../theme';
-import { CONFIG } from '../config';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;

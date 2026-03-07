@@ -1,8 +1,8 @@
-import { C } from '../theme';
-import { CONFIG } from '../config';
-import type { TetrominoType } from '../types';
-import type { PlayerStats } from '../game/engine';
-import { getShape } from '../game/pieces';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
+import type { TetrominoType } from '../../../shared/types';
+import type { PlayerStats } from '../../../shared/game/engine';
+import { getShape } from '../../../shared/game/pieces';
 import BoardComponent from './Board';
 import Panel from './Panel';
 import Divider from './Divider';

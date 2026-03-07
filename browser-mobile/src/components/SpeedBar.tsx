@@ -1,4 +1,4 @@
-import { C } from '../theme';
+import { C } from '../../../shared/theme';
 
 interface Props {
   band: number; // 0–6

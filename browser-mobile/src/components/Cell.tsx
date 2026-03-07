@@ -1,6 +1,6 @@
-import type { CellValue } from '../types';
-import { C } from '../theme';
-import { CONFIG } from '../config';
+import type { CellValue } from '../../../shared/types';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
 
 const S = CONFIG.CELL_SIZE;
 

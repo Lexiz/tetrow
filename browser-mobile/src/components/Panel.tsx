@@ -1,5 +1,5 @@
-import { C } from '../theme';
-import { CONFIG } from '../config';
+import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
 import SpeedBar from './SpeedBar';
 import MiniPiece from './MiniPiece';
 

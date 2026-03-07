@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { C } from '../theme';
-import type { Owner } from '../types';
+import { C } from '../../../shared/theme';
+import type { Owner } from '../../../shared/types';
 
 interface Props {
   base: number;
