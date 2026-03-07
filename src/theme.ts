@@ -1,0 +1,15 @@
+export const C = {
+  bg:    '#050508',
+  panel: '#09090f',
+  border:'#18182a',
+  p1:    '#ff7a00',
+  p1b:   '#ffaa44',
+  p1dim: '#ff7a0022',
+  p2:    '#00e5ff',
+  p2b:   '#66f4ff',
+  p2dim: '#00e5ff22',
+  text:  '#dde0f5',
+  dim:   '#30304a',
+  grid:  '#0a0a12',
+  white: '#ffffff',
+} as const;
