@@ -107,6 +107,7 @@ export function useGameEngine() {
     p1BandIdx,
     p2BandIdx,
     showP1Next,
+    handleAction,
     dispatch,
   };
 }
