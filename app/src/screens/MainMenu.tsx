@@ -1,5 +1,6 @@
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
+import { APP_VERSION } from '../../../shared/version';
 import type { User } from 'firebase/auth';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
@@ -169,7 +170,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
         zIndex: 1, fontFamily: 'monospace', fontSize: 8,
         letterSpacing: 3, color: C.dim,
       }}>
-        CHESTET · v0.2
+        CHESTET · v{APP_VERSION}
       </div>
     </div>
   );
