@@ -19,23 +19,32 @@ interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
 }
 
+function getVisibleHeight(): number {
+  // On iOS Safari, window.innerHeight includes area behind toolbars.
+  // visualViewport gives the actual visible area.
+  if (window.visualViewport) return window.visualViewport.height;
+  return window.innerHeight;
+}
+
+function calcCellSize(): number {
+  const availH = getVisibleHeight() - BAR_HEIGHT - 8;
+  const fromW = Math.floor((window.innerWidth - 12) / CONFIG.COLS);
+  const fromH = Math.floor(availH / CONFIG.ROWS);
+  return Math.min(fromW, fromH, 36);
+}
+
 function useMobileCellSize(): number {
-  const [size, setSize] = useState(() => {
-    const availH = window.innerHeight - BAR_HEIGHT - 16; // bar + padding
-    const fromW = Math.floor((window.innerWidth - 12) / CONFIG.COLS);
-    const fromH = Math.floor(availH / CONFIG.ROWS);
-    return Math.min(fromW, fromH, 36);
-  });
+  const [size, setSize] = useState(calcCellSize);
 
   useEffect(() => {
-    function handleResize() {
-      const availH = window.innerHeight - BAR_HEIGHT - 16;
-      const fromW = Math.floor((window.innerWidth - 12) / CONFIG.COLS);
-      const fromH = Math.floor(availH / CONFIG.ROWS);
-      setSize(Math.min(fromW, fromH, 36));
-    }
+    function handleResize() { setSize(calcCellSize()); }
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    // visualViewport fires its own resize event on iOS when toolbar shows/hides
+    window.visualViewport?.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return size;
@@ -55,12 +64,13 @@ export default function MobileGameScreen({ onGameEnd }: Props) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      height: '100vh',
+      height: '100dvh',
       width: '100%',
       boxSizing: 'border-box',
       justifyContent: 'space-between',
-      padding: '4px 0 0 0',
+      padding: '0',
       background: '#030306',
+      overflow: 'hidden',
     }}>
       {/* Board area — takes remaining space, centered */}
       <div style={{
