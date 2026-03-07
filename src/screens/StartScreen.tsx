@@ -69,7 +69,7 @@ export default function StartScreen({ onStart }: Props) {
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
           letterSpacing: 4, color: C.white, cursor: 'pointer',
-          boxShadow: `0 0 4px rgba(255,180,100,0.4), 0 0 8px rgba(255,150,60,0.15), inset 0 0 8px rgba(255,180,100,0.06)`,
+          boxShadow: `0 0 7px rgba(255,180,100,0.4), 0 0 12px rgba(255,150,60,0.15), inset 0 0 8px rgba(255,180,100,0.06)`,
         }}>START MATCH</button>
         <div style={{ color: C.text, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3, opacity: 0.5 }}>
           ARROWS + SPACE
