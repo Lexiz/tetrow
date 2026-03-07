@@ -3,17 +3,17 @@ import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import Cell from './Cell';
 
-const { COLS, CELL_SIZE } = CONFIG;
-
 interface Props {
   board: Board;
+  cellSize?: number;
 }
 
-export default function Board({ board }: Props) {
+export default function BoardComponent({ board, cellSize }: Props) {
+  const S = cellSize ?? CONFIG.CELL_SIZE;
   return (
     <div style={{
       display: 'inline-grid',
-      gridTemplateColumns: `repeat(${COLS}, ${CELL_SIZE}px)`,
+      gridTemplateColumns: `repeat(${CONFIG.COLS}, ${S}px)`,
       border: '2px solid #222238',
       borderRadius: 3,
       background: C.grid,
@@ -25,7 +25,7 @@ export default function Board({ board }: Props) {
       `,
     }}>
       {board.map((row, r) =>
-        row.map((value, c) => <Cell key={`${r}-${c}`} value={value} />)
+        row.map((value, c) => <Cell key={`${r}-${c}`} value={value} size={S} />)
       )}
     </div>
   );
