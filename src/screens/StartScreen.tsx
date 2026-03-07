@@ -63,10 +63,10 @@ export default function StartScreen({ onStart }: Props) {
       {/* Start button */}
       <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <button onClick={onStart} style={{
-          padding: '14px 56px',
+          padding: '18px 68px',
           background: C.bg,
-          border: `1.5px solid rgba(255,200,140,0.45)`,
-          borderRadius: 4,
+          border: `2px solid rgba(255,200,140,0.45)`,
+          borderRadius: 5,
           fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
           letterSpacing: 4, color: C.white, cursor: 'pointer',
           boxShadow: `0 0 7px rgba(255,180,100,0.4), 0 0 12px rgba(255,150,60,0.15), inset 0 0 8px rgba(255,180,100,0.06)`,
