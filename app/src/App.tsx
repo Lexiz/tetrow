@@ -38,7 +38,7 @@ export default function App() {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {screen === 'start' && <StartScreen onStart={() => setScreen('game')} />}
+        {screen === 'start' && <StartScreen onStart={() => setScreen('game')} isMobile />}
         {screen === 'game' && <MobileGameScreen onGameEnd={handleGameEnd} />}
         {screen === 'end' && (
           <EndScreen
