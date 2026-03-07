@@ -1,7 +1,7 @@
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import SpeedBar from './SpeedBar';
-import MiniPiece from './MiniPiece';
+import SpeedBar from '../common/SpeedBar';
+import MiniPiece from '../common/MiniPiece';
 
 interface Props {
   player: 1 | 2;
