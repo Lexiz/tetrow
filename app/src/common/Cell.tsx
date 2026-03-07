@@ -2,13 +2,14 @@ import type { CellValue } from '../../../shared/types';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 
-const S = CONFIG.CELL_SIZE;
-
 interface Props {
   value: CellValue;
+  size?: number;
 }
 
-export default function Cell({ value }: Props) {
+export default function Cell({ value, size }: Props) {
+  const S = size ?? CONFIG.CELL_SIZE;
+
   if (!value) {
     return (
       <div style={{
@@ -49,7 +50,6 @@ export default function Cell({ value }: Props) {
       `,
       overflow: 'hidden',
     }}>
-      {/* highlight streak */}
       <div style={{
         position: 'absolute', top: 1, left: 2, right: 2, height: '35%',
         background: `linear-gradient(to bottom, ${C.white}44, transparent)`,

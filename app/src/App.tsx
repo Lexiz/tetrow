@@ -3,6 +3,7 @@ import { C } from '../../shared/theme';
 import type { Screen, Owner } from '../../shared/types';
 import type { PlayerStats } from '../../shared/game/engine';
 import MonitorGameScreen from './monitor/GameScreen';
+import MobileGameScreen from './mobile/GameScreen';
 import StartScreen from './screens/StartScreen';
 import EndScreen from './screens/EndScreen';
 import { useIsMobile } from './hooks/useIsMobile';
@@ -38,7 +39,7 @@ export default function App() {
         justifyContent: 'center',
       }}>
         {screen === 'start' && <StartScreen onStart={() => setScreen('game')} />}
-        {screen === 'game' && <MonitorGameScreen onGameEnd={handleGameEnd} />}
+        {screen === 'game' && <MobileGameScreen onGameEnd={handleGameEnd} />}
         {screen === 'end' && (
           <EndScreen
             p1Score={result.p1Score}
