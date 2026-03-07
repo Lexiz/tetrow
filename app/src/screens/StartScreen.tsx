@@ -6,16 +6,20 @@ const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
 
 interface Props {
   onStart: () => void;
+  isMobile?: boolean;
 }
 
-export default function StartScreen({ onStart }: Props) {
+export default function StartScreen({ onStart, isMobile }: Props) {
   return (
     <div style={{
-      width: W, height: H,
+      width: isMobile ? '100vw' : W,
+      height: isMobile ? '100vh' : H,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: C.bg, gap: 28,
+      background: C.bg, gap: isMobile ? 22 : 28,
       position: 'relative', overflow: 'hidden',
+      padding: isMobile ? '16px' : 0,
+      boxSizing: 'border-box',
     }}>
       {/* Subtle grid overlay */}
       <div style={{
@@ -72,33 +76,47 @@ export default function StartScreen({ onStart }: Props) {
           boxShadow: `0 0 7px rgba(255,180,100,0.4), 0 0 12px rgba(255,150,60,0.15), inset 0 0 8px rgba(255,180,100,0.06)`,
         }}>START MATCH</button>
         <div style={{ color: C.text, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3, opacity: 0.5 }}>
-          ARROWS + SPACE
+          {isMobile ? 'TOUCH GESTURES' : 'ARROWS + SPACE'}
         </div>
+      </div>
+
+      {/* Controls section header */}
+      <div style={{
+        zIndex: 1, fontFamily: 'monospace', fontSize: 8, letterSpacing: 4,
+        color: C.text, opacity: 0.5,
+      }}>
+        {isMobile ? 'TOUCH CONTROLS' : 'KEYBOARD CONTROLS'}
       </div>
 
       {/* Controls reference — stacked vertically, columns aligned */}
       <div style={{
         zIndex: 1,
         display: 'grid',
-        gridTemplateColumns: '70px auto',
+        gridTemplateColumns: isMobile ? '90px auto' : '70px auto',
         gap: '6px 10px',
         alignItems: 'center',
       }}>
-        {([
+        {(isMobile ? [
+          ['SWIPE ← →', 'Move'],
+          ['TAP LEFT',   'Rotate CCW'],
+          ['TAP RIGHT',  'Rotate CW'],
+          ['DRAG ↓',     'Soft Drop'],
+          ['SWIPE ↓',    'Hard Drop'],
+        ] : [
           ['← →',   'Move'],
           ['↑ / Z',  'Rotate'],
           ['↓',      'Soft Drop'],
           ['SPACE',  'Hard Drop'],
         ] as [string, string][]).map(([k, a]) => ([
           <span key={k} style={{
-            fontFamily: 'monospace', fontSize: 10, color: C.p1,
+            fontFamily: 'monospace', fontSize: isMobile ? 9 : 10, color: C.p1,
             background: '#080812', border: `1px solid ${C.p1}55`,
             padding: '2px 8px', borderRadius: 3,
             textAlign: 'center', display: 'block',
             boxShadow: `0 0 8px ${C.p1}33, inset 0 0 6px ${C.p1}11`,
           }}>{k}</span>,
           <span key={`${k}-label`} style={{
-            fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.7,
+            fontFamily: 'monospace', fontSize: isMobile ? 9 : 10, color: C.text, opacity: 0.7,
           }}>{a}</span>,
         ]))}
       </div>
