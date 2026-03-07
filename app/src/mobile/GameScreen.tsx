@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { TetrominoType } from '../../../shared/types';
@@ -10,6 +10,7 @@ import LineClearEffect from '../common/LineClearEffect';
 import MiniPiece from '../common/MiniPiece';
 import SpeedBar from '../common/SpeedBar';
 import { useGameEngine } from '../hooks/useGameEngine';
+import { useTouchInput } from '../hooks/useTouchInput';
 
 const HIDDEN_NEXT: [number, number][] = [];
 const BAR_HEIGHT = 64;
@@ -41,8 +42,10 @@ function useMobileCellSize(): number {
 }
 
 export default function MobileGameScreen({ onGameEnd }: Props) {
-  const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next } = useGameEngine();
+  const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next, handleAction } = useGameEngine();
   const cellSize = useMobileCellSize();
+  const boardRef = useRef<HTMLDivElement>(null);
+  useTouchInput(state.active, handleAction, boardRef);
   const ended = state.phase === 'ended';
   const p1Active = state.active === 1 && !ended;
   const p2Active = state.active === 2 && !ended;
@@ -66,7 +69,7 @@ export default function MobileGameScreen({ onGameEnd }: Props) {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <div style={{ position: 'relative' }}>
+        <div ref={boardRef} style={{ position: 'relative', touchAction: 'none' }}>
           <BoardComponent board={displayBoard} cellSize={cellSize} />
           {state.lastClear && (
             <ScorePopup
