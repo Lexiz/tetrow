@@ -27,7 +27,7 @@ export default function App() {
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
   const isMobile = useIsMobile();
-  const { user, loading, signIn, signOut } = useAuth();
+  const { user, loading, error: authError, signIn, signOut } = useAuth();
 
   // Redirect to login if not authenticated
   const currentScreen = (!user && screen !== 'login') ? 'login' : screen;
@@ -89,7 +89,7 @@ export default function App() {
         justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        {currentScreen === 'login' && <LoginScreen onSignIn={signIn} isMobile />}
+        {currentScreen === 'login' && <LoginScreen onSignIn={signIn} authError={authError} isMobile />}
         {currentScreen === 'menu' && user && (
           <MainMenu
             user={user}
@@ -140,7 +140,7 @@ export default function App() {
           0  40px 100px rgba(0,0,0,0.95)
         `,
       }}>
-        {currentScreen === 'login' && <LoginScreen onSignIn={signIn} />}
+        {currentScreen === 'login' && <LoginScreen onSignIn={signIn} authError={authError} />}
         {currentScreen === 'menu' && user && (
           <MainMenu
             user={user}
