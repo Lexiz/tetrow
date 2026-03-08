@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import { APP_VERSION } from '../../../shared/version';
@@ -6,18 +7,17 @@ import type { User } from 'firebase/auth';
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
 
-export type AiDifficulty = 'easy' | 'medium' | 'hard';
-
 interface Props {
   user: User;
   elo: number;
-  onWarmUp: (difficulty: AiDifficulty) => void;
+  onWarmUp: () => void;
   onRanked: () => void;
   onSignOut: () => void;
   isMobile?: boolean;
 }
 
 export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isMobile }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const displayName = user.displayName || 'Player';
   const photoURL = user.photoURL;
   const rank = getRankLabel(elo);
@@ -29,7 +29,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
       height: isMobile ? '100dvh' : H,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: C.bg, gap: 24,
+      background: C.bg, gap: 32,
       position: 'relative', overflow: 'hidden',
       padding: isMobile ? '16px' : 0,
       boxSizing: 'border-box',
@@ -57,112 +57,116 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
         }} />
       ))}
 
-      {/* Profile bar */}
-      <div style={{
-        zIndex: 1, display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        {photoURL && (
-          <img src={photoURL} alt="" style={{
-            width: 32, height: 32, borderRadius: '50%',
-            border: `1.5px solid ${C.border}`,
-          }} referrerPolicy="no-referrer" />
-        )}
-        <div>
+      {/* Account menu (top-right) */}
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}>
+        <button onClick={() => setMenuOpen(!menuOpen)} style={{
+          background: 'none', border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: '5px 10px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {photoURL && (
+            <img src={photoURL} alt="" style={{
+              width: 22, height: 22, borderRadius: '50%',
+              border: `1px solid ${C.border}`,
+            }} referrerPolicy="no-referrer" />
+          )}
+          <span style={{
+            fontFamily: 'monospace', fontSize: 10, color: C.text, fontWeight: 700,
+          }}>{displayName}</span>
+        </button>
+
+        {menuOpen && (
           <div style={{
-            fontFamily: 'monospace', fontSize: 12, color: C.white, fontWeight: 700,
-          }}>{displayName}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 9, color: rankCol,
-              letterSpacing: 2, fontWeight: 900,
-            }}>{rank}</span>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.6,
-            }}>{elo}</span>
+            position: 'absolute', top: '100%', right: 0, marginTop: 4,
+            background: C.panel, border: `1px solid ${C.border}`,
+            borderRadius: 4, overflow: 'hidden', minWidth: 140,
+          }}>
+            {/* ELO info */}
+            <div style={{
+              padding: '10px 14px',
+              borderBottom: `1px solid ${C.border}`,
+            }}>
+              <div style={{
+                fontFamily: 'monospace', fontSize: 9, color: rankCol,
+                letterSpacing: 2, fontWeight: 900,
+              }}>{rank}</div>
+              <div style={{
+                fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.6,
+              }}>{elo} ELO</div>
+            </div>
+            <button onClick={onSignOut} style={{
+              width: '100%', padding: '10px 14px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'monospace', fontSize: 9, color: C.dim,
+              letterSpacing: 1, textAlign: 'left',
+            }}>SIGN OUT</button>
           </div>
-        </div>
-        <button onClick={onSignOut} style={{
-          marginLeft: 12, background: 'none', border: `1px solid ${C.border}`,
-          borderRadius: 3, padding: '3px 8px', cursor: 'pointer',
-          fontFamily: 'monospace', fontSize: 8, color: C.dim, letterSpacing: 1,
-        }}>SIGN OUT</button>
+        )}
       </div>
 
       {/* Title */}
-      <div style={{
-        zIndex: 1,
-        fontFamily: "'Courier New', monospace",
-        fontSize: isMobile ? 36 : 48, fontWeight: 900, letterSpacing: -2,
-        background: `linear-gradient(130deg, ${C.p1} 0%, ${C.p1b} 40%, ${C.p2b} 70%, ${C.p2} 100%)`,
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        filter: `drop-shadow(0 0 20px ${C.p1}44) drop-shadow(0 0 40px ${C.p2}22)`,
-        lineHeight: 1,
-      }}>CHESTET</div>
+      <div style={{ zIndex: 1, textAlign: 'center' }}>
+        <div style={{
+          fontFamily: "'Courier New', monospace",
+          fontSize: isMobile ? 42 : 56, fontWeight: 900, letterSpacing: -2,
+          background: `linear-gradient(130deg, ${C.p1} 0%, ${C.p1b} 40%, ${C.p2b} 70%, ${C.p2} 100%)`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          filter: `drop-shadow(0 0 20px ${C.p1}44) drop-shadow(0 0 40px ${C.p2}22)`,
+          lineHeight: 1,
+        }}>CHESTET</div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
+          color: C.text, opacity: 0.5, marginTop: 8,
+        }}>COMPETITIVE TETRIS</div>
+      </div>
 
-      {/* Mode cards */}
+      {/* Two big buttons */}
       <div style={{
         zIndex: 1, display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         gap: 16, width: isMobile ? '100%' : 'auto',
-        maxWidth: 500, padding: '0 16px', boxSizing: 'border-box',
+        maxWidth: 420, padding: '0 24px', boxSizing: 'border-box',
       }}>
-        {/* WARM UP card */}
-        <div style={{
-          flex: 1, background: '#080812',
-          border: `1.5px solid ${C.p1}44`,
-          borderRadius: 8, padding: 20,
-          display: 'flex', flexDirection: 'column', gap: 12,
+        <button onClick={onWarmUp} style={{
+          flex: 1, minWidth: isMobile ? 'auto' : 180,
+          padding: '28px 24px',
+          background: '#080812',
+          border: `2px solid ${C.p1}44`,
+          borderRadius: 8, cursor: 'pointer',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 8,
+          boxShadow: `0 0 20px ${C.p1}11`,
         }}>
           <div style={{
-            fontFamily: 'monospace', fontSize: 11, fontWeight: 900,
+            fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
             letterSpacing: 3, color: C.p1,
           }}>WARM UP</div>
           <div style={{
-            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
-            lineHeight: 1.5,
-          }}>Play against AI to practice your skills</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['easy', 'medium', 'hard'] as AiDifficulty[]).map((d) => (
-              <button key={d} onClick={() => onWarmUp(d)} style={{
-                flex: 1, padding: '10px 0',
-                background: C.bg,
-                border: `1.5px solid ${C.p1}55`,
-                borderRadius: 4, cursor: 'pointer',
-                fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
-                letterSpacing: 1, color: C.white,
-                textTransform: 'uppercase',
-                boxShadow: `0 0 6px ${C.p1}22`,
-              }}>{d}</button>
-            ))}
-          </div>
-        </div>
+            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5,
+            lineHeight: 1.5, textAlign: 'center',
+          }}>Practice against AI</div>
+        </button>
 
-        {/* RANKED card */}
-        <div style={{
-          flex: 1, background: '#080812',
-          border: `1.5px solid ${C.p2}44`,
-          borderRadius: 8, padding: 20,
-          display: 'flex', flexDirection: 'column', gap: 12,
+        <button onClick={onRanked} style={{
+          flex: 1, minWidth: isMobile ? 'auto' : 180,
+          padding: '28px 24px',
+          background: '#080812',
+          border: `2px solid ${C.p2}44`,
+          borderRadius: 8, cursor: 'pointer',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 8,
+          boxShadow: `0 0 20px ${C.p2}11`,
         }}>
           <div style={{
-            fontFamily: 'monospace', fontSize: 11, fontWeight: 900,
+            fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
             letterSpacing: 3, color: C.p2,
-          }}>RANKED</div>
+          }}>PLAY RANKED</div>
           <div style={{
-            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
-            lineHeight: 1.5,
-          }}>Compete for ELO rating on the leaderboard</div>
-          <button onClick={onRanked} style={{
-            padding: '10px 0',
-            background: C.bg,
-            border: `2px solid ${C.p2}55`,
-            borderRadius: 4, cursor: 'pointer',
-            fontFamily: 'monospace', fontSize: 11, fontWeight: 900,
-            letterSpacing: 3, color: C.white,
-            boxShadow: `0 0 8px ${C.p2}33`,
-          }}>FIND MATCH</button>
-        </div>
+            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5,
+            lineHeight: 1.5, textAlign: 'center',
+          }}>Compete for ELO</div>
+        </button>
       </div>
 
       {/* Footer */}
