@@ -15,6 +15,10 @@ type Tab = 'leaderboard' | 'history';
 interface Props {
   user: User;
   elo: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  gamesPlayed: number;
   matchPhase: MatchPhase;
   queueSize: number;
   opponentName: string | null;
@@ -28,13 +32,15 @@ interface Props {
 }
 
 export default function RankedScreen({
-  user, elo, matchPhase, queueSize, opponentName, error,
+  user, elo, wins, losses, draws, gamesPlayed, matchPhase, queueSize, opponentName, error,
   onFindMatch, onCancelSearch, onBack, onEnterLobby, onLeaveLobby, isMobile,
 }: Props) {
   const [tab, setTab] = useState<Tab>('leaderboard');
   const [lobbyCount, setLobbyCount] = useState<number | null>(null);
+  const [showRankInfo, setShowRankInfo] = useState(false);
   const rankCol = getRankColor(elo);
   const rankLabel = getRankLabel(elo);
+  const rankIcon = getRankIcon(elo);
 
   const isSearching = matchPhase === 'queuing';
   const isConnecting = matchPhase === 'connecting';
@@ -222,19 +228,96 @@ export default function RankedScreen({
         filter: 'blur(40px)',
       }} />
 
-      {/* Header: ELO + rank */}
-      <div style={{ zIndex: 1, textAlign: 'center' }}>
+      {/* Header: ELO + rank (left) | stats (right) */}
+      <div style={{
+        zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 24, width: isMobile ? '100%' : 380, maxWidth: 420,
+      }}>
+        {/* Left: ELO + rank */}
+        <div style={{ textAlign: 'center', position: 'relative' }}>
+          <div style={{
+            fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
+          }}>RANKED MODE</div>
+          <div style={{
+            fontFamily: "'Courier New', monospace", fontSize: 36, fontWeight: 900,
+            color: C.white, marginTop: 4,
+          }}>{elo}</div>
+          <div
+            onClick={() => setShowRankInfo(!showRankInfo)}
+            style={{
+              fontFamily: 'monospace', fontSize: 10, letterSpacing: 3,
+              fontWeight: 900, color: rankCol, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+            }}
+          >
+            <span style={{ fontSize: 14 }}>{rankIcon}</span>
+            {rankLabel}
+          </div>
+
+          {/* Rank info popup */}
+          {showRankInfo && (
+            <div
+              onClick={() => setShowRankInfo(false)}
+              style={{
+                position: 'absolute', top: '100%', left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: 8, zIndex: 10,
+                background: C.panel, border: `1px solid ${C.border}`,
+                borderRadius: 6, padding: '10px 14px',
+                minWidth: 160, boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+              }}
+            >
+              {RANK_TIERS.map((tier) => {
+                const isCurrentTier = rankLabel === tier.label;
+                return (
+                  <div key={tier.label} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '4px 0',
+                    opacity: isCurrentTier ? 1 : 0.6,
+                  }}>
+                    <span style={{ fontSize: 12, width: 18, textAlign: 'center' }}>{tier.icon}</span>
+                    <span style={{
+                      fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
+                      color: tier.color, letterSpacing: 2, flex: 1,
+                    }}>{tier.label}</span>
+                    <span style={{
+                      fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.5,
+                    }}>{tier.range}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
         <div style={{
-          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
-        }}>RANKED MODE</div>
-        <div style={{
-          fontFamily: "'Courier New', monospace", fontSize: 36, fontWeight: 900,
-          color: C.white, marginTop: 4,
-        }}>{elo}</div>
-        <div style={{
-          fontFamily: 'monospace', fontSize: 10, letterSpacing: 3,
-          fontWeight: 900, color: rankCol,
-        }}>{rankLabel}</div>
+          width: 1, height: 50, background: `${C.border}`,
+        }} />
+
+        {/* Right: stats */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontFamily: 'monospace', fontSize: 8, letterSpacing: 3, color: C.text, opacity: 0.5,
+          }}>GAMES</div>
+          <div style={{
+            fontFamily: "'Courier New', monospace", fontSize: 20, fontWeight: 900,
+            color: C.white, marginTop: 2,
+          }}>{gamesPlayed}</div>
+          <div style={{
+            fontFamily: 'monospace', fontSize: 9, color: C.text, marginTop: 4,
+            display: 'flex', gap: 8, justifyContent: 'center',
+          }}>
+            <span style={{ color: '#22cc44' }}>{wins}W</span>
+            <span style={{ color: '#ff4466' }}>{losses}L</span>
+            {draws > 0 && <span style={{ color: C.text }}>{draws}D</span>}
+          </div>
+          {gamesPlayed > 0 && (
+            <div style={{
+              fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.4, marginTop: 2,
+            }}>{Math.round((wins / gamesPlayed) * 100)}% win rate</div>
+          )}
+        </div>
       </div>
 
       {/* Find Match button */}
@@ -518,3 +601,19 @@ function getRankColor(elo: number): string {
   if (elo >= 1000) return '#c0c0c0';
   return '#cd7f32';
 }
+
+function getRankIcon(elo: number): string {
+  if (elo >= 2200) return '\u{1F48E}'; // 💎
+  if (elo >= 1800) return '\u{2B50}';  // ⭐
+  if (elo >= 1400) return '\u{1F451}'; // 👑
+  if (elo >= 1000) return '\u{1F6E1}'; // 🛡
+  return '\u{1F530}';                  // 🔰
+}
+
+const RANK_TIERS = [
+  { label: 'DIAMOND',  icon: '\u{1F48E}', color: '#b9f2ff', range: '2200+' },
+  { label: 'PLATINUM', icon: '\u{2B50}',  color: '#e5e4e2', range: '1800-2199' },
+  { label: 'GOLD',     icon: '\u{1F451}', color: '#ffd700', range: '1400-1799' },
+  { label: 'SILVER',   icon: '\u{1F6E1}', color: '#c0c0c0', range: '1000-1399' },
+  { label: 'BRONZE',   icon: '\u{1F530}', color: '#cd7f32', range: '0-999' },
+];

@@ -243,6 +243,10 @@ export default function App() {
           <RankedScreen
             user={user}
             elo={elo}
+            wins={userProfile?.wins ?? 0}
+            losses={userProfile?.losses ?? 0}
+            draws={userProfile?.draws ?? 0}
+            gamesPlayed={userProfile?.gamesPlayed ?? 0}
             matchPhase={mp.phase}
             queueSize={mp.queueSize}
             opponentName={mp.opponentName}
