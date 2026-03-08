@@ -6,6 +6,8 @@ import type { PlayerStats } from '../../shared/game/engine';
 import type { AiDifficulty } from '../../shared/game/ai';
 import MonitorGameScreen from './monitor/GameScreen';
 import MobileGameScreen from './mobile/GameScreen';
+import MonitorMPGameScreen from './monitor/MultiplayerGameScreen';
+import MobileMPGameScreen from './mobile/MultiplayerGameScreen';
 import LoginScreen from './screens/LoginScreen';
 import MainMenu from './screens/MainMenu';
 import WarmUpScreen from './screens/WarmUpScreen';
@@ -41,25 +43,25 @@ export default function App() {
     if (screen === 'login') setScreen('menu');
   }
 
-  // When multiplayer match starts playing, switch to game screen
+  // When multiplayer match starts playing, switch to ranked game screen
   useEffect(() => {
     if (mp.phase === 'playing' && currentScreen === 'ranked') {
-      setScreen('game');
+      setScreen('ranked-game');
     }
   }, [mp.phase, currentScreen]);
 
-  // When multiplayer match ends, show end screen
+  // When multiplayer match ends via server notification
   useEffect(() => {
-    if (mp.phase === 'ended' && mp.endResult) {
+    if (mp.phase === 'ended' && mp.endResult && currentScreen === 'ranked-game') {
       setResult({
         p1Score: mp.endResult.scores[0],
         p2Score: mp.endResult.scores[1],
-        toppedOut: null, // TODO: get from server
+        toppedOut: null,
         stats: mp.endResult.stats,
       });
       setScreen('end');
     }
-  }, [mp.phase, mp.endResult]);
+  }, [mp.phase, mp.endResult, currentScreen]);
 
   function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) {
     setResult({ p1Score, p2Score, toppedOut, stats });
@@ -152,6 +154,23 @@ export default function App() {
           mobile
             ? <MobileGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} />
             : <MonitorGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} />
+        )}
+        {currentScreen === 'ranked-game' && mp.myPlayer && (
+          mobile
+            ? <MobileMPGameScreen
+                gameState={mp.gameState}
+                myPlayer={mp.myPlayer}
+                opponentName={mp.opponentName ?? 'Opponent'}
+                sendAction={mpActions.sendAction}
+                onGameEnd={handleGameEnd}
+              />
+            : <MonitorMPGameScreen
+                gameState={mp.gameState}
+                myPlayer={mp.myPlayer}
+                opponentName={mp.opponentName ?? 'Opponent'}
+                sendAction={mpActions.sendAction}
+                onGameEnd={handleGameEnd}
+              />
         )}
         {currentScreen === 'end' && (
           <EndScreen
