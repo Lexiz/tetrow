@@ -349,10 +349,12 @@ function SearchTimer() {
 
 function LeaderboardTab() {
   const [entries, setEntries] = useState<(UserProfile & { id: string })[] | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     getLeaderboard(10).then(setEntries).catch((err) => {
       console.error('Leaderboard fetch failed:', err);
+      setFetchError(err?.message || String(err));
       setEntries([]);
     });
   }, []);
@@ -367,9 +369,15 @@ function LeaderboardTab() {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', minHeight: 120, gap: 8,
       }}>
-        <div style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', lineHeight: 1.6 }}>
-          No ranked matches yet.<br />Play matches to appear here.
-        </div>
+        {fetchError ? (
+          <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#ff6b6b', textAlign: 'center', lineHeight: 1.6, padding: '0 8px' }}>
+            Leaderboard error:<br />{fetchError}
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', lineHeight: 1.6 }}>
+            No ranked matches yet.<br />Play matches to appear here.
+          </div>
+        )}
       </div>
     );
   }
@@ -408,10 +416,12 @@ function LeaderboardTab() {
 
 function HistoryTab({ userId }: { userId: string }) {
   const [matches, setMatches] = useState<MatchRecord[] | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     getMatchHistory(userId, 10).then(setMatches).catch((err) => {
       console.error('History fetch failed:', err);
+      setFetchError(err?.message || String(err));
       setMatches([]);
     });
   }, [userId]);
@@ -426,9 +436,15 @@ function HistoryTab({ userId }: { userId: string }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', minHeight: 120, gap: 8,
       }}>
-        <div style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', lineHeight: 1.6 }}>
-          No matches played yet.<br />Find a match to get started.
-        </div>
+        {fetchError ? (
+          <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#ff6b6b', textAlign: 'center', lineHeight: 1.6, padding: '0 8px' }}>
+            History error:<br />{fetchError}
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', lineHeight: 1.6 }}>
+            No matches played yet.<br />Find a match to get started.
+          </div>
+        )}
       </div>
     );
   }
