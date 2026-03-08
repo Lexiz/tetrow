@@ -1,5 +1,6 @@
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
+import { APP_VERSION } from '../../../shared/version';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -62,6 +63,10 @@ export default function LoginScreen({ onSignIn, isMobile }: Props) {
           filter: `drop-shadow(0 0 28px ${C.p1}66) drop-shadow(0 0 56px ${C.p2}33)`,
           lineHeight: 1,
         }}>CHESTET</div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
+          color: C.dim, marginTop: 8,
+        }}>v{APP_VERSION}</div>
       </div>
 
       {/* Google Sign-In button */}
