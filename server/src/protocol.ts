@@ -9,6 +9,7 @@ import type { TetrominoType } from '../../shared/types';
 export type ClientMessage =
   | { type: 'JOIN_QUEUE'; userId: string; displayName: string; elo: number }
   | { type: 'LEAVE_QUEUE' }
+  | { type: 'CONFIRM' }
   | { type: 'ACTION'; action: Action };
 
 // ── Server → Client ──────────────────────────────────────────────────────────
@@ -33,6 +34,11 @@ export type ServerMessage =
   | { type: 'QUEUED' }
   | { type: 'QUEUE_SIZE'; count: number }
   | { type: 'MATCH_FOUND'; matchId: string; player: Owner; opponentName: string }
+  | { type: 'CONFIRM_PHASE'; p1Name: string; p2Name: string; myPlayer: Owner; timeoutMs: number }
+  | { type: 'PLAYER_CONFIRMED'; player: Owner }
+  | { type: 'BOTH_CONFIRMED'; myPlayer: Owner; p1Name: string; p2Name: string }
+  | { type: 'COUNTDOWN'; count: number }
+  | { type: 'CONFIRM_TIMEOUT' }
   | { type: 'GAME_STATE'; state: ClientGameState }
   | { type: 'GAME_END'; winner: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats] }
   | { type: 'OPPONENT_DISCONNECTED' }

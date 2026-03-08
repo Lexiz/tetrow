@@ -14,6 +14,7 @@ import WarmUpScreen from './screens/WarmUpScreen';
 import StartScreen from './screens/StartScreen';
 import EndScreen from './screens/EndScreen';
 import RankedScreen from './screens/RankedScreen';
+import MatchConfirmScreen from './screens/MatchConfirmScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
@@ -57,10 +58,31 @@ export default function App() {
     }
   }, [user?.uid]);
 
+  // When multiplayer enters confirmation phase, switch to confirm screen
+  useEffect(() => {
+    if (mp.phase === 'confirming' && (currentScreen === 'ranked' || currentScreen === 'match-confirm')) {
+      setScreen('match-confirm');
+    }
+  }, [mp.phase, currentScreen]);
+
+  // When countdown starts, stay on confirm screen (it handles both phases)
+  useEffect(() => {
+    if (mp.phase === 'countdown' && currentScreen === 'match-confirm') {
+      // MatchConfirmScreen handles the countdown display
+    }
+  }, [mp.phase, currentScreen]);
+
   // When multiplayer match starts playing, switch to ranked game screen
   useEffect(() => {
-    if (mp.phase === 'playing' && currentScreen === 'ranked') {
+    if (mp.phase === 'playing' && (currentScreen === 'ranked' || currentScreen === 'match-confirm')) {
       setScreen('ranked-game');
+    }
+  }, [mp.phase, currentScreen]);
+
+  // When confirmation times out, go back to ranked
+  useEffect(() => {
+    if (mp.phase === 'confirm_timeout' && currentScreen === 'match-confirm') {
+      // MatchConfirmScreen shows the timeout message with a back button
     }
   }, [mp.phase, currentScreen]);
 
@@ -186,6 +208,16 @@ export default function App() {
             onFindMatch={handleFindMatch}
             onCancelSearch={handleCancelSearch}
             onBack={handleBackToMenu}
+            isMobile={mobile}
+          />
+        )}
+        {currentScreen === 'match-confirm' && (
+          <MatchConfirmScreen
+            confirmInfo={mp.confirmInfo}
+            countdownInfo={mp.countdownInfo}
+            phase={mp.phase === 'countdown' ? 'countdown' : mp.phase === 'confirm_timeout' ? 'confirm_timeout' : 'confirming'}
+            onConfirm={mpActions.confirm}
+            onBack={() => { mpActions.reset(); setScreen('ranked'); }}
             isMobile={mobile}
           />
         )}
