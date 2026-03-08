@@ -12,7 +12,7 @@ export default function ScorePopup({ base, bonus, player }: Props) {
   const [phase, setPhase] = useState<'in' | 'out'>('in');
 
   useEffect(() => {
-    const id = setTimeout(() => setPhase('out'), 1600);
+    const id = setTimeout(() => setPhase('out'), 2600);
     return () => clearTimeout(id);
   }, []);
 
