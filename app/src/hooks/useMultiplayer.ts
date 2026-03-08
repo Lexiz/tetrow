@@ -35,16 +35,29 @@ interface CountdownInfo {
 interface MultiplayerState {
   phase: MatchPhase;
   queueSize: number;
+  lobbyCount: number;
   myPlayer: Owner | null;
   opponentName: string | null;
   gameState: ClientGameState | null;
-  endResult: { winner: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats] } | null;
+  endResult: {
+    winner: Owner | null;
+    scores: [number, number];
+    stats: [PlayerStats, PlayerStats];
+    p1Id: string;
+    p1Name: string;
+    p2Id: string;
+    p2Name: string;
+    p1Elo: number;
+    p2Elo: number;
+  } | null;
   error: string | null;
   confirmInfo: ConfirmInfo | null;
   countdownInfo: CountdownInfo | null;
 }
 
 interface MultiplayerActions {
+  connectLobby: () => void;
+  disconnectLobby: () => void;
   joinQueue: (userId: string, displayName: string, elo: number) => void;
   leaveQueue: () => void;
   confirm: () => void;
@@ -55,6 +68,7 @@ interface MultiplayerActions {
 export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const [phase, setPhase] = useState<MatchPhase>('idle');
   const [queueSize, setQueueSize] = useState(0);
+  const [lobbyCount, setLobbyCount] = useState(0);
   const [myPlayer, setMyPlayer] = useState<Owner | null>(null);
   const [opponentName, setOpponentName] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ClientGameState | null>(null);
@@ -63,21 +77,60 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const [confirmInfo, setConfirmInfo] = useState<ConfirmInfo | null>(null);
   const [countdownInfo, setCountdownInfo] = useState<CountdownInfo | null>(null);
 
+  const lobbyWs = useRef<WebSocket | null>(null);
   const queueWs = useRef<WebSocket | null>(null);
   const matchWs = useRef<WebSocket | null>(null);
   const matchInfoRef = useRef<{ matchId: string; player: Owner; userId: string; displayName: string; elo: number } | null>(null);
+  const joinInfoRef = useRef<{ userId: string; displayName: string; elo: number } | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      lobbyWs.current?.close();
       queueWs.current?.close();
       matchWs.current?.close();
     };
   }, []);
 
+  // Connect a presence WebSocket to the matchmaker (just for lobby count)
+  const connectLobby = useCallback(() => {
+    if (lobbyWs.current) return; // already connected
+    const ws = new WebSocket(`${SERVER_URL}/api/queue`);
+    lobbyWs.current = ws;
+
+    ws.onmessage = (ev) => {
+      const data: ServerMessage = JSON.parse(ev.data);
+      if (data.type === 'QUEUE_SIZE') {
+        setQueueSize(data.count);
+      }
+    };
+
+    ws.onclose = () => {
+      lobbyWs.current = null;
+    };
+
+    ws.onerror = () => {
+      lobbyWs.current = null;
+    };
+  }, []);
+
+  const disconnectLobby = useCallback(() => {
+    if (lobbyWs.current) {
+      lobbyWs.current.close();
+      lobbyWs.current = null;
+    }
+  }, []);
+
   const joinQueue = useCallback((userId: string, displayName: string, elo: number) => {
     setPhase('queuing');
     setError(null);
+    joinInfoRef.current = { userId, displayName, elo };
+
+    // Close the lobby presence WebSocket — we'll use queueWs now
+    if (lobbyWs.current) {
+      lobbyWs.current.close();
+      lobbyWs.current = null;
+    }
 
     const ws = new WebSocket(`${SERVER_URL}/api/queue`);
     queueWs.current = ws;
@@ -143,7 +196,6 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     matchWs.current = ws;
 
     ws.onopen = () => {
-      // Don't go to 'playing' yet — wait for CONFIRM_PHASE
       setPhase('connecting');
     };
 
@@ -179,7 +231,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
           myPlayer: data.myPlayer,
           p1Name: data.p1Name,
           p2Name: data.p2Name,
-          count: 0, // will be updated by COUNTDOWN messages
+          count: 0,
         });
       }
 
@@ -197,7 +249,17 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
       }
 
       if (data.type === 'GAME_END') {
-        setEndResult({ winner: data.winner, scores: data.scores, stats: data.stats });
+        setEndResult({
+          winner: data.winner,
+          scores: data.scores,
+          stats: data.stats,
+          p1Id: data.p1Id,
+          p1Name: data.p1Name,
+          p2Id: data.p2Id,
+          p2Name: data.p2Name,
+          p1Elo: data.p1Elo,
+          p2Elo: data.p2Elo,
+        });
         setPhase('ended');
       }
 
@@ -222,7 +284,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const leaveQueue = useCallback(() => {
     if (queueWs.current) {
       const msg: ClientMessage = { type: 'LEAVE_QUEUE' };
-      queueWs.current.send(JSON.stringify(msg));
+      try { queueWs.current.send(JSON.stringify(msg)); } catch {}
       queueWs.current.close();
       queueWs.current = null;
     }
@@ -245,13 +307,17 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   }, []);
 
   const reset = useCallback(() => {
+    lobbyWs.current?.close();
     queueWs.current?.close();
     matchWs.current?.close();
+    lobbyWs.current = null;
     queueWs.current = null;
     matchWs.current = null;
     matchInfoRef.current = null;
+    joinInfoRef.current = null;
     setPhase('idle');
     setQueueSize(0);
+    setLobbyCount(0);
     setMyPlayer(null);
     setOpponentName(null);
     setGameState(null);
@@ -262,7 +328,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   }, []);
 
   return [
-    { phase, queueSize, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo },
-    { joinQueue, leaveQueue, confirm, sendAction, reset },
+    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo },
+    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, sendAction, reset },
   ];
 }

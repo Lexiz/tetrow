@@ -13,7 +13,6 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Owner } from '../../shared/types';
-import type { PlayerStats } from '../../shared/game/engine';
 
 // ── User Profile ─────────────────────────────────────────────────────────────
 
@@ -33,7 +32,6 @@ export async function getOrCreateProfile(userId: string, displayName: string, ph
   const snap = await getDoc(ref);
 
   if (snap.exists()) {
-    // Update display name and photo if changed
     const data = snap.data() as UserProfile;
     if (data.displayName !== displayName || data.photoURL !== photoURL) {
       await setDoc(ref, { displayName, photoURL }, { merge: true });
@@ -82,60 +80,71 @@ function calcEloChange(myElo: number, oppElo: number, result: number, gamesPlaye
   return Math.round(K * (result - expected));
 }
 
-/** Save match result — updates both player profiles and creates a match record */
-export async function saveMatchResult(
-  p1Id: string,
-  p1Name: string,
-  p2Id: string,
-  p2Name: string,
+/**
+ * Save match result for the current user only.
+ * Each client calls this independently — updates only their own profile
+ * and creates a match record (deduped by matchId if provided).
+ */
+export async function saveMyMatchResult(
+  myId: string,
+  myName: string,
+  myPhotoURL: string | null,
+  myPlayerNum: Owner,
+  oppId: string,
+  oppName: string,
+  oppElo: number,
   p1Score: number,
   p2Score: number,
   winner: Owner | null,
-): Promise<{ p1EloChange: number; p2EloChange: number }> {
-  // Get both profiles
-  const p1Profile = await getUserProfile(p1Id);
-  const p2Profile = await getUserProfile(p2Id);
+): Promise<void> {
+  // Get my current profile
+  const myProfile = await getUserProfile(myId);
+  const myElo = myProfile?.elo ?? 1200;
+  const myGames = myProfile?.gamesPlayed ?? 0;
 
-  const p1Elo = p1Profile?.elo ?? 1200;
-  const p2Elo = p2Profile?.elo ?? 1200;
-  const p1Games = p1Profile?.gamesPlayed ?? 0;
-  const p2Games = p2Profile?.gamesPlayed ?? 0;
+  // Calculate ELO change
+  const iWon = winner === myPlayerNum;
+  const iLost = winner !== null && winner !== myPlayerNum;
+  const myResult = iWon ? 1 : iLost ? 0 : 0.5;
+  const myEloChange = calcEloChange(myElo, oppElo, myResult, myGames);
 
-  // Calculate ELO changes
-  const p1Result = winner === 1 ? 1 : winner === 2 ? 0 : 0.5;
-  const p2Result = winner === 2 ? 1 : winner === 1 ? 0 : 0.5;
-  const p1EloChange = calcEloChange(p1Elo, p2Elo, p1Result, p1Games);
-  const p2EloChange = calcEloChange(p2Elo, p1Elo, p2Result, p2Games);
-
-  // Update player profiles
-  const p1Update: Partial<UserProfile> = {
-    elo: p1Elo + p1EloChange,
-    gamesPlayed: p1Games + 1,
-    wins: (p1Profile?.wins ?? 0) + (winner === 1 ? 1 : 0),
-    losses: (p1Profile?.losses ?? 0) + (winner === 2 ? 1 : 0),
-    draws: (p1Profile?.draws ?? 0) + (winner === null ? 1 : 0),
+  // Update my own profile
+  const myUpdate: Partial<UserProfile> = {
+    displayName: myName,
+    photoURL: myPhotoURL,
+    elo: myElo + myEloChange,
+    gamesPlayed: myGames + 1,
+    wins: (myProfile?.wins ?? 0) + (iWon ? 1 : 0),
+    losses: (myProfile?.losses ?? 0) + (iLost ? 1 : 0),
+    draws: (myProfile?.draws ?? 0) + (winner === null ? 1 : 0),
   };
-  const p2Update: Partial<UserProfile> = {
-    elo: p2Elo + p2EloChange,
-    gamesPlayed: p2Games + 1,
-    wins: (p2Profile?.wins ?? 0) + (winner === 2 ? 1 : 0),
-    losses: (p2Profile?.losses ?? 0) + (winner === 1 ? 1 : 0),
-    draws: (p2Profile?.draws ?? 0) + (winner === null ? 1 : 0),
-  };
+  await setDoc(doc(db, 'users', myId), myUpdate, { merge: true });
 
-  await setDoc(doc(db, 'users', p1Id), p1Update, { merge: true });
-  await setDoc(doc(db, 'users', p2Id), p2Update, { merge: true });
+  // Calculate opponent ELO change for the match record
+  const oppResult = iWon ? 0 : iLost ? 1 : 0.5;
+  const oppEloChange = calcEloChange(oppElo, myElo, oppResult, 0);
 
-  // Create match record
+  // Create match record (both clients may write — Firestore handles it)
+  const p1Id = myPlayerNum === 1 ? myId : oppId;
+  const p1Name_ = myPlayerNum === 1 ? myName : oppName;
+  const p2Id = myPlayerNum === 2 ? myId : oppId;
+  const p2Name_ = myPlayerNum === 2 ? myName : oppName;
+  const p1EloChange = myPlayerNum === 1 ? myEloChange : oppEloChange;
+  const p2EloChange = myPlayerNum === 2 ? myEloChange : oppEloChange;
+
   const match: Omit<MatchRecord, 'id'> = {
-    p1Id, p1Name, p2Id, p2Name,
-    p1Score, p2Score, winner,
-    p1EloChange, p2EloChange,
+    p1Id,
+    p1Name: p1Name_,
+    p2Id,
+    p2Name: p2Name_,
+    p1Score,
+    p2Score,
+    winner,
+    p1EloChange,
+    p2EloChange,
     timestamp: serverTimestamp(),
   };
   await addDoc(collection(db, 'matches'), match);
-
-  return { p1EloChange, p2EloChange };
 }
 
 // ── Leaderboard ──────────────────────────────────────────────────────────────
@@ -154,14 +163,12 @@ export async function getLeaderboard(max = 10): Promise<(UserProfile & { id: str
 // ── Match History for a User ─────────────────────────────────────────────────
 
 export async function getMatchHistory(userId: string, max = 10): Promise<MatchRecord[]> {
-  // Query matches where user was P1
   const q1 = query(
     collection(db, 'matches'),
     where('p1Id', '==', userId),
     orderBy('timestamp', 'desc'),
     limit(max),
   );
-  // Query matches where user was P2
   const q2 = query(
     collection(db, 'matches'),
     where('p2Id', '==', userId),
@@ -176,7 +183,6 @@ export async function getMatchHistory(userId: string, max = 10): Promise<MatchRe
     ...snap2.docs.map(d => ({ id: d.id, ...(d.data() as MatchRecord) })),
   ];
 
-  // Sort by timestamp descending and take top N
   matches.sort((a, b) => {
     const ta = a.timestamp?.seconds ?? 0;
     const tb = b.timestamp?.seconds ?? 0;

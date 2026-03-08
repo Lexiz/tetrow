@@ -40,6 +40,6 @@ export type ServerMessage =
   | { type: 'COUNTDOWN'; count: number }
   | { type: 'CONFIRM_TIMEOUT' }
   | { type: 'GAME_STATE'; state: ClientGameState }
-  | { type: 'GAME_END'; winner: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats] }
+  | { type: 'GAME_END'; winner: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats]; p1Id: string; p1Name: string; p2Id: string; p2Name: string; p1Elo: number; p2Elo: number }
   | { type: 'OPPONENT_DISCONNECTED' }
   | { type: 'ERROR'; message: string };
