@@ -264,8 +264,8 @@ export default function RankedScreen({
         {/* Right: stats */}
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            fontFamily: 'monospace', fontSize: 9, letterSpacing: 4, color: C.text, opacity: 0.5,
-          }}>GAMES</div>
+            fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
+          }}>RANKED GAMES</div>
           <div style={{
             fontFamily: "'Courier New', monospace", fontSize: 24, fontWeight: 900,
             color: C.white, marginTop: 2,
@@ -280,7 +280,7 @@ export default function RankedScreen({
           </div>
           {gamesPlayed > 0 && (
             <div style={{
-              fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.4, marginTop: 2,
+              fontFamily: 'monospace', fontSize: 9, color: C.white, opacity: 0.7, marginTop: 2,
             }}>{Math.round((wins / gamesPlayed) * 100)}% win rate</div>
           )}
         </div>

@@ -274,8 +274,8 @@ export default function App() {
         {currentScreen === 'start' && <StartScreen onStart={() => setScreen('game')} isMobile={mobile} />}
         {(currentScreen === 'game' || currentScreen === 'warmup') && (
           mobile
-            ? <MobileGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} />
-            : <MonitorGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} />
+            ? <MobileGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} onQuit={handleBackToMenu} />
+            : <MonitorGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} onQuit={handleBackToMenu} />
         )}
         {currentScreen === 'ranked-game' && mp.myPlayer && (() => {
           const myName = user?.displayName || 'Player';

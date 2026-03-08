@@ -7,7 +7,7 @@ interface Props {
   playerNum: Owner;
   score: number;
   speedBand: string;
-  eloLoss: number;
+  eloLoss?: number;
   onBack: () => void;
   onQuit: () => void;
 }
@@ -68,7 +68,7 @@ export default function GamePauseOverlay({ playerName, playerNum, score, speedBa
               boxShadow: `0 0 12px ${col}55`,
             }}>BACK TO GAME</button>
 
-            <button onClick={() => setConfirmQuit(true)} style={{
+            <button onClick={eloLoss != null ? () => setConfirmQuit(true) : onQuit} style={{
               width: '100%', padding: '8px 0',
               background: 'transparent',
               border: `1px solid ${C.border}`,
@@ -85,7 +85,7 @@ export default function GamePauseOverlay({ playerName, playerNum, score, speedBa
             }}>
               Quitting will count as a loss.
               <br />
-              <span style={{ fontWeight: 900, fontSize: 11 }}>You will lose {Math.abs(eloLoss)} ELO</span>
+              <span style={{ fontWeight: 900, fontSize: 11 }}>You will lose {Math.abs(eloLoss!)} ELO</span>
             </div>
 
             <div style={{ display: 'flex', gap: 10, width: '100%' }}>

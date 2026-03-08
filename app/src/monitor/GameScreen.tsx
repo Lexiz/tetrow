@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { TetrominoType } from '../../../shared/types';
@@ -10,6 +11,7 @@ import { useGameEngine } from '../hooks/useGameEngine';
 import type { AiDifficulty } from '../../../shared/game/ai';
 import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
+import GamePauseOverlay from '../common/GamePauseOverlay';
 
 // Placeholder cells for hidden next-piece preview
 const HIDDEN_NEXT: [number, number][] = [];
@@ -17,9 +19,11 @@ const HIDDEN_NEXT: [number, number][] = [];
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
   aiDifficulty?: AiDifficulty;
+  onQuit?: () => void;
 }
 
-export default function GameScreen({ onGameEnd, aiDifficulty }: Props) {
+export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
+  const [showPause, setShowPause] = useState(false);
   const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next } = useGameEngine(
     aiDifficulty ? { aiPlayer: 2, aiDifficulty } : undefined,
   );
@@ -68,12 +72,35 @@ export default function GameScreen({ onGameEnd, aiDifficulty }: Props) {
                 player={state.lastClear.player}
               />
             )}
+            {/* Pause overlay */}
+            {showPause && !ended && onQuit && (
+              <GamePauseOverlay
+                playerName={state.active === 1 ? 'PLAYER 1' : 'PLAYER 2'}
+                playerNum={state.active}
+                score={state.scores[state.active - 1]}
+                speedBand={CONFIG.SPEED_BANDS[state.active === 1 ? p1BandIdx : p2BandIdx]?.label ?? 'S0'}
+                onBack={() => setShowPause(false)}
+                onQuit={onQuit}
+              />
+            )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', marginTop: 2 }}>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: C.p1, textShadow: `0 0 10px ${C.p1}` }}>
+            <span
+              onClick={onQuit ? () => setShowPause(true) : undefined}
+              style={{
+                fontFamily: 'monospace', fontSize: 10, color: C.p1, textShadow: `0 0 10px ${C.p1}`,
+                cursor: onQuit ? 'pointer' : 'default',
+              }}
+            >
               ■ PLAYER 1
             </span>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: C.p2, textShadow: `0 0 10px ${C.p2}` }}>
+            <span
+              onClick={onQuit ? () => setShowPause(true) : undefined}
+              style={{
+                fontFamily: 'monospace', fontSize: 10, color: C.p2, textShadow: `0 0 10px ${C.p2}`,
+                cursor: onQuit ? 'pointer' : 'default',
+              }}
+            >
               ■ PLAYER 2
             </span>
           </div>
