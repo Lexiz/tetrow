@@ -38,8 +38,9 @@ export class Matchmaker extends DurableObject<Env> {
 
     // HTTP endpoint: return lobby count
     if (url.pathname === '/lobby') {
-      const count = this.getQueue().length;
-      return new Response(JSON.stringify({ count }), {
+      const all = this.ctx.getWebSockets();
+      const queue = this.getQueue();
+      return new Response(JSON.stringify({ count: all.length, searching: queue.length }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }

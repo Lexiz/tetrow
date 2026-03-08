@@ -182,6 +182,27 @@ export class Match extends DurableObject {
     if (conn) this.send(conn.ws, msg);
   }
 
+  private broadcastGameEnd() {
+    if (!this.state) return;
+    const p1 = this.players.get(1 as Owner);
+    const p2 = this.players.get(2 as Owner);
+    const msg: ServerMessage = {
+      type: 'GAME_END',
+      winner: this.state.winner,
+      scores: this.state.scores,
+      stats: this.state.stats,
+      p1Id: p1?.userId ?? '',
+      p1Name: p1?.displayName ?? 'Player 1',
+      p2Id: p2?.userId ?? '',
+      p2Name: p2?.displayName ?? 'Player 2',
+      p1Elo: p1?.elo ?? 1200,
+      p2Elo: p2?.elo ?? 1200,
+    };
+    for (const [, conn] of this.players) {
+      this.send(conn.ws, msg);
+    }
+  }
+
   private scheduleGravity() {
     if (!this.state || this.state.phase === 'ended') return;
     const activeScore = this.state.scores[this.state.active - 1];
@@ -270,14 +291,7 @@ export class Match extends DurableObject {
 
       if (this.state.phase === 'ended') {
         this.matchPhase = 'ended';
-        for (const [, conn] of this.players) {
-          this.send(conn.ws, {
-            type: 'GAME_END',
-            winner: this.state.winner,
-            scores: this.state.scores,
-            stats: this.state.stats,
-          });
-        }
+        this.broadcastGameEnd();
         return;
       }
 
@@ -323,14 +337,7 @@ export class Match extends DurableObject {
 
       if (this.state.phase === 'ended') {
         this.matchPhase = 'ended';
-        for (const [, conn] of this.players) {
-          this.send(conn.ws, {
-            type: 'GAME_END',
-            winner: this.state.winner,
-            scores: this.state.scores,
-            stats: this.state.stats,
-          });
-        }
+        this.broadcastGameEnd();
         return;
       }
 

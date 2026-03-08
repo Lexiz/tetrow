@@ -22,12 +22,14 @@ interface Props {
   onFindMatch: () => void;
   onCancelSearch: () => void;
   onBack: () => void;
+  onEnterLobby: () => void;
+  onLeaveLobby: () => void;
   isMobile?: boolean;
 }
 
 export default function RankedScreen({
   user, elo, matchPhase, queueSize, opponentName, error,
-  onFindMatch, onCancelSearch, onBack, isMobile,
+  onFindMatch, onCancelSearch, onBack, onEnterLobby, onLeaveLobby, isMobile,
 }: Props) {
   const [tab, setTab] = useState<Tab>('leaderboard');
   const [lobbyCount, setLobbyCount] = useState<number | null>(null);
@@ -37,7 +39,13 @@ export default function RankedScreen({
   const isSearching = matchPhase === 'queuing';
   const isConnecting = matchPhase === 'connecting';
 
-  // Poll lobby count every 5 seconds
+  // Connect presence WebSocket on mount, disconnect on unmount
+  useEffect(() => {
+    onEnterLobby();
+    return () => onLeaveLobby();
+  }, []);
+
+  // Poll lobby count via HTTP (WebSocket presence counts all connected clients)
   useEffect(() => {
     let active = true;
     async function fetchLobby() {
@@ -47,10 +55,12 @@ export default function RankedScreen({
           const data = await res.json();
           setLobbyCount(data.count);
         }
-      } catch {}
+      } catch (err) {
+        console.error('Lobby fetch failed:', err);
+      }
     }
     fetchLobby();
-    const interval = setInterval(fetchLobby, 5000);
+    const interval = setInterval(fetchLobby, 3000);
     return () => { active = false; clearInterval(interval); };
   }, []);
 
@@ -166,7 +176,7 @@ export default function RankedScreen({
         <span style={{
           fontFamily: 'monospace', fontSize: 9, color: C.white,
         }}>
-          {lobbyCount !== null ? `${lobbyCount} in lobby` : 'connecting...'}
+          {lobbyCount !== null ? `${lobbyCount} online` : 'connecting...'}
         </span>
         <button onClick={() => {
           setLobbyCount(null);
@@ -230,7 +240,10 @@ function LeaderboardTab() {
   const [entries, setEntries] = useState<(UserProfile & { id: string })[] | null>(null);
 
   useEffect(() => {
-    getLeaderboard(10).then(setEntries).catch(() => setEntries([]));
+    getLeaderboard(10).then(setEntries).catch((err) => {
+      console.error('Leaderboard fetch failed:', err);
+      setEntries([]);
+    });
   }, []);
 
   if (entries === null) {
@@ -286,7 +299,10 @@ function HistoryTab({ userId }: { userId: string }) {
   const [matches, setMatches] = useState<MatchRecord[] | null>(null);
 
   useEffect(() => {
-    getMatchHistory(userId, 10).then(setMatches).catch(() => setMatches([]));
+    getMatchHistory(userId, 10).then(setMatches).catch((err) => {
+      console.error('History fetch failed:', err);
+      setMatches([]);
+    });
   }, [userId]);
 
   if (matches === null) {

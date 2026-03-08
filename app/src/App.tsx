@@ -18,7 +18,7 @@ import MatchConfirmScreen from './screens/MatchConfirmScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
-import { getOrCreateProfile, saveMatchResult, type UserProfile } from './firestore';
+import { getOrCreateProfile, saveMyMatchResult, type UserProfile } from './firestore';
 
 interface MatchResult {
   p1Score: number;
@@ -34,7 +34,6 @@ export default function App() {
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [wasRankedGame, setWasRankedGame] = useState(false);
   const isMobile = useIsMobile();
   const { user, loading, error: authError, signIn, signOut } = useAuth();
   const [mp, mpActions] = useMultiplayer();
@@ -89,43 +88,41 @@ export default function App() {
   // When multiplayer match ends via server notification — save to Firestore
   useEffect(() => {
     if (mp.phase === 'ended' && mp.endResult && currentScreen === 'ranked-game') {
+      const er = mp.endResult;
       setResult({
-        p1Score: mp.endResult.scores[0],
-        p2Score: mp.endResult.scores[1],
+        p1Score: er.scores[0],
+        p2Score: er.scores[1],
         toppedOut: null,
-        stats: mp.endResult.stats,
+        stats: er.stats,
       });
-      setWasRankedGame(true);
       setScreen('end');
+
+      // Save match result to Firestore (each client saves their own profile)
+      if (user && mp.myPlayer) {
+        const oppId = mp.myPlayer === 1 ? er.p2Id : er.p1Id;
+        const oppName = mp.myPlayer === 1 ? er.p2Name : er.p1Name;
+        const oppElo = mp.myPlayer === 1 ? er.p2Elo : er.p1Elo;
+
+        saveMyMatchResult(
+          user.uid,
+          user.displayName || 'Player',
+          user.photoURL,
+          mp.myPlayer,
+          oppId,
+          oppName,
+          oppElo,
+          er.scores[0],
+          er.scores[1],
+          er.winner,
+        )
+          .then(() => getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL).then(setUserProfile))
+          .catch((err) => console.error('Failed to save match result:', err));
+      }
     }
   }, [mp.phase, mp.endResult, currentScreen]);
 
   function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) {
     setResult({ p1Score, p2Score, toppedOut, stats });
-
-    // Save ranked match results to Firestore
-    if (wasRankedGame && user && mp.myPlayer && mp.opponentName) {
-      const winner: Owner | null = p1Score > p2Score ? 1 : p2Score > p1Score ? 2 : null;
-      // For now, use user's uid for their player slot and a placeholder for opponent
-      // In a real setup, the server would provide both player IDs
-      const myId = user.uid;
-      const myName = user.displayName || 'Player';
-      const oppName = mp.opponentName;
-      // Use a deterministic opponent ID based on match info (server should provide this)
-      const oppId = `opponent_${Date.now()}`;
-
-      if (mp.myPlayer === 1) {
-        saveMatchResult(myId, myName, oppId, oppName, p1Score, p2Score, winner)
-          .then(() => getOrCreateProfile(myId, myName, user.photoURL).then(setUserProfile))
-          .catch(() => {});
-      } else {
-        saveMatchResult(oppId, oppName, myId, myName, p1Score, p2Score, winner)
-          .then(() => getOrCreateProfile(myId, myName, user.photoURL).then(setUserProfile))
-          .catch(() => {});
-      }
-      setWasRankedGame(false);
-    }
-
     setScreen('end');
   }
 
@@ -208,6 +205,8 @@ export default function App() {
             onFindMatch={handleFindMatch}
             onCancelSearch={handleCancelSearch}
             onBack={handleBackToMenu}
+            onEnterLobby={mpActions.connectLobby}
+            onLeaveLobby={mpActions.disconnectLobby}
             isMobile={mobile}
           />
         )}
