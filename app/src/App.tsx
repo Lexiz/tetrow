@@ -171,7 +171,7 @@ export default function App() {
       }}>
         {renderScreen(false)}
       </div>
-      <div style={{ marginTop: 16, color: C.dim, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3 }}>
+      <div style={{ marginTop: 16, color: C.white, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3 }}>
         CHESTET · v{APP_VERSION}
       </div>
     </div>

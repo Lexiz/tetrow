@@ -97,7 +97,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
             <button onClick={onSignOut} style={{
               width: '100%', padding: '10px 14px',
               background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'monospace', fontSize: 9, color: C.dim,
+              fontFamily: 'monospace', fontSize: 9, color: C.white,
               letterSpacing: 1, textAlign: 'left',
             }}>SIGN OUT</button>
           </div>
@@ -117,7 +117,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
         }}>CHESTET</div>
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
-          color: C.text, opacity: 0.5, marginTop: 8,
+          color: C.white, opacity: 0.7, marginTop: 8,
         }}>COMPETITIVE TETRIS</div>
       </div>
 
@@ -172,7 +172,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
       {/* Footer */}
       <div style={{
         zIndex: 1, fontFamily: 'monospace', fontSize: 8,
-        letterSpacing: 3, color: C.dim,
+        letterSpacing: 3, color: C.white,
       }}>
         CHESTET · v{APP_VERSION}
       </div>
