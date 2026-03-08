@@ -207,12 +207,12 @@ export class Match extends DurableObject {
     }
   }
 
-  private scheduleGravity() {
+  private scheduleGravity(extraDelayMs = 0) {
     if (!this.state || this.state.phase === 'ended') return;
     const activeScore = this.state.scores[this.state.active - 1];
     const ms = getGravityMs(activeScore);
     this.ctx.storage.put('alarmType', 'gravity');
-    this.ctx.storage.setAlarm(Date.now() + ms);
+    this.ctx.storage.setAlarm(Date.now() + ms + extraDelayMs);
   }
 
   async alarm() {
@@ -299,8 +299,10 @@ export class Match extends DurableObject {
         return;
       }
 
-      // Turn changed after lock, schedule gravity for next player
-      this.scheduleGravity();
+      // Delay gravity: 1.5s for line clears (animation), 2s for equalizer (warning)
+      const delay = this.state.phase === 'equalizer' ? 2000
+        : this.state.clearedRows.length > 0 ? 1500 : 0;
+      this.scheduleGravity(delay);
     }
   }
 
@@ -347,7 +349,10 @@ export class Match extends DurableObject {
 
       if (this.state.active !== prevActive || action.type === 'HARD_DROP') {
         // Turn changed (hard drop locked the piece), schedule gravity for next player
-        this.scheduleGravity();
+        // Delay for line clear animation or equalizer warning
+        const delay = this.state.phase === 'equalizer' ? 2000
+          : this.state.clearedRows.length > 0 ? 1500 : 0;
+        this.scheduleGravity(delay);
       } else if (this.state.isGrounded) {
         // Piece is grounded after move/rotate/soft_drop — schedule lock
         this.ctx.storage.put('alarmType', 'lock');
