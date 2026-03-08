@@ -34,7 +34,7 @@ export default function WarmUpScreen({ onSelect, onBack, isMobile }: Props) {
         position: 'absolute', top: 16, left: 16, zIndex: 2,
         background: 'none', border: `1px solid ${C.border}`,
         borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
-        fontFamily: 'monospace', fontSize: 9, color: C.dim, letterSpacing: 1,
+        fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
       }}>← BACK</button>
 
       {/* Ambient glow */}
@@ -49,7 +49,7 @@ export default function WarmUpScreen({ onSelect, onBack, isMobile }: Props) {
       {/* Header */}
       <div style={{ zIndex: 1, textAlign: 'center' }}>
         <div style={{
-          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.dim,
+          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
         }}>WARM UP</div>
         <div style={{
           fontFamily: "'Courier New', monospace", fontSize: 28, fontWeight: 900,

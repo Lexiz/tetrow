@@ -43,7 +43,7 @@ export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile 
         position: 'absolute', top: 16, left: 16, zIndex: 2,
         background: 'none', border: `1px solid ${C.border}`,
         borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
-        fontFamily: 'monospace', fontSize: 9, color: C.dim, letterSpacing: 1,
+        fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
       }}>← BACK</button>
 
       {/* Ambient glow */}
@@ -58,7 +58,7 @@ export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile 
       {/* Header: ELO + rank */}
       <div style={{ zIndex: 1, textAlign: 'center' }}>
         <div style={{
-          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.dim,
+          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
         }}>RANKED MODE</div>
         <div style={{
           fontFamily: "'Courier New', monospace", fontSize: 36, fontWeight: 900,
@@ -110,7 +110,7 @@ export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile 
             borderBottom: `2px solid ${tab === t ? C.p2 : C.border}`,
             cursor: 'pointer',
             fontFamily: 'monospace', fontSize: 10, fontWeight: 700,
-            letterSpacing: 2, color: tab === t ? C.white : C.dim,
+            letterSpacing: 2, color: tab === t ? C.white : C.text,
           }}>{t.toUpperCase()}</button>
         ))}
       </div>
@@ -145,7 +145,7 @@ function LeaderboardTab() {
     }}>
       <div style={{
         fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-        color: C.dim, textAlign: 'center',
+        color: C.text, textAlign: 'center',
       }}>LEADERBOARD</div>
       <div style={{
         fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5,
@@ -166,7 +166,7 @@ function HistoryTab() {
     }}>
       <div style={{
         fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-        color: C.dim, textAlign: 'center',
+        color: C.text, textAlign: 'center',
       }}>MATCH HISTORY</div>
       <div style={{
         fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5,
