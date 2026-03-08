@@ -7,6 +7,7 @@ import type { ClientGameState } from '../../../server/src/protocol';
 import BoardComponent from '../common/Board';
 import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
+import GamePauseOverlay from '../common/GamePauseOverlay';
 import MiniPiece from '../common/MiniPiece';
 import SpeedBar from '../common/SpeedBar';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame';
@@ -17,9 +18,12 @@ const BAR_HEIGHT = 64;
 interface Props {
   gameState: ClientGameState | null;
   myPlayer: Owner;
+  myName: string;
   opponentName: string;
+  eloLoss: number;
   sendAction: (action: Action) => void;
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) => void;
+  onQuit: () => void;
 }
 
 function getVisibleHeight(): number {
@@ -48,9 +52,10 @@ function useMobileCellSize(): number {
   return size;
 }
 
-export default function MobileMultiplayerGameScreen({ gameState, myPlayer, opponentName, sendAction, onGameEnd }: Props) {
+export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myName, opponentName, eloLoss, sendAction, onGameEnd, onQuit }: Props) {
   const game = useMultiplayerGame(gameState, myPlayer, sendAction);
   const cellSize = useMobileCellSize();
+  const [showPause, setShowPause] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Wire touch input — use handleTouchAction from the multiplayer game hook
@@ -146,6 +151,19 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, oppon
               `}</style>
             </div>
           )}
+
+          {/* Pause overlay */}
+          {showPause && !game.ended && (
+            <GamePauseOverlay
+              playerName={myName}
+              playerNum={myPlayer}
+              score={game.scores[myPlayer - 1]}
+              speedBand={CONFIG.SPEED_BANDS[myPlayer === 1 ? game.p1BandIdx : game.p2BandIdx]?.label ?? 'S0'}
+              eloLoss={eloLoss}
+              onBack={() => setShowPause(false)}
+              onQuit={onQuit}
+            />
+          )}
         </div>
       </div>
 
@@ -165,6 +183,7 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, oppon
           bandIndex={game.p1BandIdx}
           nextPiece={game.p1Next}
           active={game.active === 1 && !game.ended}
+          onClick={myPlayer === 1 ? () => setShowPause(true) : undefined}
         />
         <div style={{ width: 1, background: C.border, alignSelf: 'stretch' }} />
         <PlayerHalf
@@ -174,6 +193,7 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, oppon
           bandIndex={game.p2BandIdx}
           nextPiece={game.p2Next}
           active={game.active === 2 && !game.ended}
+          onClick={myPlayer === 2 ? () => setShowPause(true) : undefined}
         />
       </div>
 
@@ -216,12 +236,13 @@ interface PlayerHalfProps {
   bandIndex: number;
   nextPiece: [number, number][];
   active: boolean;
+  onClick?: () => void;
 }
 
-function PlayerHalf({ player, label, score, bandIndex, nextPiece, active }: PlayerHalfProps) {
+function PlayerHalf({ player, label, score, bandIndex, nextPiece, active, onClick }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       flex: 1,
       display: 'flex',
       alignItems: 'center',
@@ -230,6 +251,7 @@ function PlayerHalf({ player, label, score, bandIndex, nextPiece, active }: Play
       background: active ? `${col}0c` : 'transparent',
       boxShadow: active ? `inset 0 0 16px ${col}15` : 'none',
       transition: 'all 0.3s',
+      cursor: onClick ? 'pointer' : 'default',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{

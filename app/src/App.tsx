@@ -30,6 +30,7 @@ interface MatchResult {
   p2Name?: string;
   p1EloChange?: number;
   p2EloChange?: number;
+  forfeit?: 1 | 2 | null;
 }
 
 const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
@@ -121,6 +122,7 @@ export default function App() {
         p2Name: er.p2Name,
         p1EloChange,
         p2EloChange,
+        forfeit: er.forfeit,
       });
       setScreen('end');
 
@@ -275,23 +277,33 @@ export default function App() {
             ? <MobileGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} />
             : <MonitorGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} />
         )}
-        {currentScreen === 'ranked-game' && mp.myPlayer && (
-          mobile
+        {currentScreen === 'ranked-game' && mp.myPlayer && (() => {
+          const myName = user?.displayName || 'Player';
+          const myElo = userProfile?.elo ?? 1200;
+          const oppElo = mp.endResult ? (mp.myPlayer === 1 ? mp.endResult.p2Elo : mp.endResult.p1Elo) : myElo;
+          const eloLoss = Math.abs(calcEloChange(myElo, oppElo, 0, userProfile?.gamesPlayed ?? 0));
+          return mobile
             ? <MobileMPGameScreen
                 gameState={mp.gameState}
                 myPlayer={mp.myPlayer}
+                myName={myName}
                 opponentName={mp.opponentName ?? 'Opponent'}
+                eloLoss={eloLoss}
                 sendAction={mpActions.sendAction}
                 onGameEnd={handleGameEnd}
+                onQuit={() => mpActions.quit()}
               />
             : <MonitorMPGameScreen
                 gameState={mp.gameState}
                 myPlayer={mp.myPlayer}
+                myName={myName}
                 opponentName={mp.opponentName ?? 'Opponent'}
+                eloLoss={eloLoss}
                 sendAction={mpActions.sendAction}
                 onGameEnd={handleGameEnd}
-              />
-        )}
+                onQuit={() => mpActions.quit()}
+              />;
+        })()}
         {currentScreen === 'end' && (
           <EndScreen
             p1Score={result.p1Score}
@@ -303,6 +315,7 @@ export default function App() {
             stats={result.stats}
             p1EloChange={result.p1EloChange}
             p2EloChange={result.p2EloChange}
+            forfeit={result.forfeit}
             onRematch={() => mpActions.rematch()}
             onClose={handleBackToMenu}
             rematchWaiting={mp.rematchWaiting}

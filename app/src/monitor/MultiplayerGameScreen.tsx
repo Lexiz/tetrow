@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { C } from '../../../shared/theme';
+import { CONFIG } from '../../../shared/config';
 import type { Owner } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import type { Action } from '../../../shared/game/engine';
@@ -8,18 +10,23 @@ import Panel from './Panel';
 import Divider from './Divider';
 import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
+import GamePauseOverlay from '../common/GamePauseOverlay';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame';
 
 interface Props {
   gameState: ClientGameState | null;
   myPlayer: Owner;
+  myName: string;
   opponentName: string;
+  eloLoss: number;
   sendAction: (action: Action) => void;
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) => void;
+  onQuit: () => void;
 }
 
-export default function MultiplayerGameScreen({ gameState, myPlayer, opponentName, sendAction, onGameEnd }: Props) {
+export default function MultiplayerGameScreen({ gameState, myPlayer, myName, opponentName, eloLoss, sendAction, onGameEnd, onQuit }: Props) {
   const game = useMultiplayerGame(gameState, myPlayer, sendAction);
+  const [showPause, setShowPause] = useState(false);
 
   if (!game) {
     return (
@@ -37,6 +44,9 @@ export default function MultiplayerGameScreen({ gameState, myPlayer, opponentNam
 
   const myLabel = myPlayer === 1 ? 'YOU (P1)' : 'YOU (P2)';
   const oppLabel = myPlayer === 1 ? `${opponentName} (P2)` : `${opponentName} (P1)`;
+  const myScore = game.scores[myPlayer - 1];
+  const myBandIdx = myPlayer === 1 ? game.p1BandIdx : game.p2BandIdx;
+  const speedLabel = CONFIG.SPEED_BANDS[myBandIdx]?.label ?? 'S0';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -105,19 +115,40 @@ export default function MultiplayerGameScreen({ gameState, myPlayer, opponentNam
                 `}</style>
               </div>
             )}
+
+            {/* Pause overlay */}
+            {showPause && !game.ended && (
+              <GamePauseOverlay
+                playerName={myName}
+                playerNum={myPlayer}
+                score={myScore}
+                speedBand={speedLabel}
+                eloLoss={eloLoss}
+                onBack={() => setShowPause(false)}
+                onQuit={onQuit}
+              />
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', marginTop: 2 }}>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 10,
-              color: C.p1, textShadow: `0 0 10px ${C.p1}`,
-            }}>
+            <span
+              onClick={myPlayer === 1 ? () => setShowPause(true) : undefined}
+              style={{
+                fontFamily: 'monospace', fontSize: 10,
+                color: C.p1, textShadow: `0 0 10px ${C.p1}`,
+                cursor: myPlayer === 1 ? 'pointer' : 'default',
+              }}
+            >
               ■ {myPlayer === 1 ? myLabel : oppLabel}
             </span>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 10,
-              color: C.p2, textShadow: `0 0 10px ${C.p2}`,
-            }}>
+            <span
+              onClick={myPlayer === 2 ? () => setShowPause(true) : undefined}
+              style={{
+                fontFamily: 'monospace', fontSize: 10,
+                color: C.p2, textShadow: `0 0 10px ${C.p2}`,
+                cursor: myPlayer === 2 ? 'pointer' : 'default',
+              }}
+            >
               ■ {myPlayer === 2 ? myLabel : oppLabel}
             </span>
           </div>
