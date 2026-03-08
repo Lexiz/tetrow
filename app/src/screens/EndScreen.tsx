@@ -13,9 +13,10 @@ interface Props {
   stats: [PlayerStats, PlayerStats];
   onPlayAgain: () => void;
   onHome: () => void;
+  firestoreError?: string | null;
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, stats, onPlayAgain, onHome }: Props) {
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, stats, onPlayAgain, onHome, firestoreError }: Props) {
   const penalty1 = p1ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const penalty2 = p2ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const finalP1 = p1Score;
@@ -142,24 +143,34 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
         })}
       </div>
 
+      {/* Firestore error display */}
+      {firestoreError && (
+        <div style={{
+          zIndex: 1, fontFamily: 'monospace', fontSize: 9,
+          color: '#ff6b6b', textAlign: 'center', maxWidth: 400,
+          padding: '8px 16px', background: '#ff6b6b11',
+          border: '1px solid #ff6b6b44', borderRadius: 4,
+        }}>{firestoreError}</div>
+      )}
+
       <div style={{ display: 'flex', gap: 16, marginTop: 8, zIndex: 1 }}>
-        <button onClick={onPlayAgain} style={{
+        <button onClick={onHome} style={{
           padding: '12px 36px',
           background: 'transparent',
-          border: `1.5px solid ${C.p1}`,
+          border: `1.5px solid ${C.p2}`,
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
-          letterSpacing: 4, color: C.p1, cursor: 'pointer',
-          boxShadow: `0 0 16px ${C.p1}55, 0 0 32px ${C.p1}22`,
-        }}>PLAY AGAIN</button>
-        <button onClick={onHome} style={{
+          letterSpacing: 4, color: C.p2, cursor: 'pointer',
+          boxShadow: `0 0 16px ${C.p2}55, 0 0 32px ${C.p2}22`,
+        }}>RANKED</button>
+        <button onClick={onPlayAgain} style={{
           padding: '12px 36px',
           background: 'transparent',
           border: `1.5px solid ${C.border}`,
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
           letterSpacing: 4, color: C.text, opacity: 0.7, cursor: 'pointer',
-        }}>HOME</button>
+        }}>MENU</button>
       </div>
     </div>
   );

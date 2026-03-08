@@ -34,6 +34,7 @@ export default function App() {
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [firestoreError, setFirestoreError] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { user, loading, error: authError, signIn, signOut } = useAuth();
   const [mp, mpActions] = useMultiplayer();
@@ -50,8 +51,14 @@ export default function App() {
   useEffect(() => {
     if (user) {
       getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL)
-        .then(setUserProfile)
-        .catch(() => {});
+        .then((profile) => {
+          setUserProfile(profile);
+          setFirestoreError(null);
+        })
+        .catch((err) => {
+          console.error('Firestore profile load failed:', err);
+          setFirestoreError(`Firestore error: ${err?.message || err}`);
+        });
     } else {
       setUserProfile(null);
     }
@@ -115,8 +122,14 @@ export default function App() {
           er.scores[1],
           er.winner,
         )
-          .then(() => getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL).then(setUserProfile))
-          .catch((err) => console.error('Failed to save match result:', err));
+          .then(() => {
+            setFirestoreError(null);
+            return getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL).then(setUserProfile);
+          })
+          .catch((err) => {
+            console.error('Failed to save match result:', err);
+            setFirestoreError(`Save failed: ${err?.message || err}`);
+          });
       }
     }
   }, [mp.phase, mp.endResult, currentScreen]);
@@ -176,6 +189,16 @@ export default function App() {
   function renderScreen(mobile?: boolean) {
     return (
       <>
+        {/* Firestore error banner — visible on all screens */}
+        {firestoreError && currentScreen !== 'end' && (
+          <div style={{
+            position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 100, fontFamily: 'monospace', fontSize: 8,
+            color: '#ff6b6b', background: '#ff6b6b11',
+            border: '1px solid #ff6b6b44', borderRadius: 4,
+            padding: '4px 12px', maxWidth: '80%', textAlign: 'center',
+          }}>{firestoreError}</div>
+        )}
         {currentScreen === 'login' && <LoginScreen onSignIn={signIn} authError={authError} isMobile={mobile} />}
         {currentScreen === 'menu' && user && (
           <MainMenu
@@ -251,7 +274,8 @@ export default function App() {
             p2ToppedOut={result.toppedOut === 2}
             stats={result.stats}
             onPlayAgain={handleBackToMenu}
-            onHome={handleBackToMenu}
+            onHome={() => { mpActions.reset(); setScreen('ranked'); }}
+            firestoreError={firestoreError}
           />
         )}
       </>
