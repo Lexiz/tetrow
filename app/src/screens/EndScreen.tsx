@@ -15,13 +15,14 @@ interface Props {
   stats: [PlayerStats, PlayerStats];
   p1EloChange?: number;
   p2EloChange?: number;
+  forfeit?: 1 | 2 | null;
   onRematch: () => void;
   onClose: () => void;
   rematchWaiting?: boolean;
   firestoreError?: string | null;
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, forfeit, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
   const penalty1 = p1ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const penalty2 = p2ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const finalP1 = p1Score;
@@ -67,7 +68,9 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
         textShadow: `0 0 20px ${winCol}, 0 0 40px ${winCol}88, 0 0 70px ${winCol}33`,
         maxWidth: W - 40, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
-        {winnerName ? `${winnerName.toUpperCase()} WINS` : 'DRAW'}
+        {forfeit
+          ? `${(forfeit === 1 ? name1 : name2).toUpperCase()} QUIT`
+          : winnerName ? `${winnerName.toUpperCase()} WINS` : 'DRAW'}
       </div>
 
       {/* Score cards */}

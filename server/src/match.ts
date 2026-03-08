@@ -28,6 +28,7 @@ export class Match extends DurableObject {
   private matchId: string = '';
   private gameStartedAt: number = 0;
   private rematchRequests: Set<Owner> = new Set();
+  private forfeit: Owner | null = null;
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -138,6 +139,7 @@ export class Match extends DurableObject {
     this.state = createInitialState();
     this.gameStartedAt = Date.now();
     this.rematchRequests.clear();
+    this.forfeit = null;
     this.broadcastState();
     this.scheduleGravity();
   }
@@ -188,15 +190,16 @@ export class Match extends DurableObject {
     if (conn) this.send(conn.ws, msg);
   }
 
-  private broadcastGameEnd() {
+  private broadcastGameEnd(overrideWinner?: Owner | null) {
     if (!this.state) return;
     const p1 = this.players.get(1 as Owner);
     const p2 = this.players.get(2 as Owner);
     const durationMs = this.gameStartedAt ? Date.now() - this.gameStartedAt : 0;
     const msg: ServerMessage = {
       type: 'GAME_END',
-      winner: this.state.winner,
+      winner: overrideWinner !== undefined ? overrideWinner : this.state.winner,
       toppedOut: this.state.toppedOut,
+      forfeit: this.forfeit,
       scores: this.state.scores,
       stats: this.state.stats,
       matchId: this.matchId,
@@ -342,6 +345,22 @@ export class Match extends DurableObject {
         this.rematchRequests.clear();
         this.startConfirmPhase();
       }
+      return;
+    }
+
+    // Handle quit (forfeit)
+    if (data.type === 'QUIT') {
+      if (!this.state || this.matchPhase !== 'playing') return;
+      let sender: Owner | null = null;
+      for (const [playerNum, conn] of this.players) {
+        if (conn.ws === ws) { sender = playerNum; break; }
+      }
+      if (!sender) return;
+
+      this.forfeit = sender;
+      const winner: Owner = sender === 1 ? 2 : 1;
+      this.matchPhase = 'ended';
+      this.broadcastGameEnd(winner);
       return;
     }
 

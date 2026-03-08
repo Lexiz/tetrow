@@ -42,6 +42,7 @@ interface MultiplayerState {
   endResult: {
     winner: Owner | null;
     toppedOut: Owner | null;
+    forfeit: Owner | null;
     scores: [number, number];
     stats: [PlayerStats, PlayerStats];
     matchId: string;
@@ -66,6 +67,7 @@ interface MultiplayerActions {
   leaveQueue: () => void;
   confirm: () => void;
   rematch: () => void;
+  quit: () => void;
   sendAction: (action: Action) => void;
   reset: () => void;
 }
@@ -258,6 +260,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
         setEndResult({
           winner: data.winner,
           toppedOut: data.toppedOut,
+          forfeit: data.forfeit,
           scores: data.scores,
           stats: data.stats,
           matchId: data.matchId,
@@ -320,6 +323,13 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     }
   }, []);
 
+  const quit = useCallback(() => {
+    if (matchWs.current?.readyState === WebSocket.OPEN) {
+      const msg: ClientMessage = { type: 'QUIT' };
+      matchWs.current.send(JSON.stringify(msg));
+    }
+  }, []);
+
   const sendAction = useCallback((action: Action) => {
     if (matchWs.current?.readyState === WebSocket.OPEN) {
       const msg: ClientMessage = { type: 'ACTION', action };
@@ -351,6 +361,6 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
 
   return [
     { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo, rematchWaiting },
-    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, rematch, sendAction, reset },
+    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, rematch, quit, sendAction, reset },
   ];
 }
