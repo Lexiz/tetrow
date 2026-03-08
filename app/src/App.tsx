@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { C } from '../../shared/theme';
 import { APP_VERSION } from '../../shared/version';
 import type { Screen, Owner } from '../../shared/types';
@@ -14,6 +14,7 @@ import EndScreen from './screens/EndScreen';
 import RankedScreen from './screens/RankedScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
+import { useMultiplayer } from './hooks/useMultiplayer';
 
 interface MatchResult {
   p1Score: number;
@@ -30,6 +31,7 @@ export default function App() {
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
   const isMobile = useIsMobile();
   const { user, loading, error: authError, signIn, signOut } = useAuth();
+  const [mp, mpActions] = useMultiplayer();
 
   // Redirect to login if not authenticated
   const currentScreen = (!user && screen !== 'login') ? 'login' : screen;
@@ -38,6 +40,26 @@ export default function App() {
   if (user && currentScreen === 'login') {
     if (screen === 'login') setScreen('menu');
   }
+
+  // When multiplayer match starts playing, switch to game screen
+  useEffect(() => {
+    if (mp.phase === 'playing' && currentScreen === 'ranked') {
+      setScreen('game');
+    }
+  }, [mp.phase, currentScreen]);
+
+  // When multiplayer match ends, show end screen
+  useEffect(() => {
+    if (mp.phase === 'ended' && mp.endResult) {
+      setResult({
+        p1Score: mp.endResult.scores[0],
+        p2Score: mp.endResult.scores[1],
+        toppedOut: null, // TODO: get from server
+        stats: mp.endResult.stats,
+      });
+      setScreen('end');
+    }
+  }, [mp.phase, mp.endResult]);
 
   function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) {
     setResult({ p1Score, p2Score, toppedOut, stats });
@@ -51,12 +73,23 @@ export default function App() {
 
   function handleBackToMenu() {
     setAiDifficulty(null);
+    mpActions.reset();
     setScreen('menu');
   }
 
   function handleSignOut() {
+    mpActions.reset();
     signOut();
     setScreen('login');
+  }
+
+  function handleFindMatch() {
+    if (!user) return;
+    mpActions.joinQueue(user.uid, user.displayName || 'Player', 1200);
+  }
+
+  function handleCancelSearch() {
+    mpActions.leaveQueue();
   }
 
   // Determine which game screen to show
@@ -104,7 +137,12 @@ export default function App() {
           <RankedScreen
             user={user}
             elo={1200}
-            onFindMatch={() => {}}
+            matchPhase={mp.phase}
+            queueSize={mp.queueSize}
+            opponentName={mp.opponentName}
+            error={mp.error}
+            onFindMatch={handleFindMatch}
+            onCancelSearch={handleCancelSearch}
             onBack={handleBackToMenu}
             isMobile={mobile}
           />

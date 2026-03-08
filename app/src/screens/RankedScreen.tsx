@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { User } from 'firebase/auth';
+import type { MatchPhase } from '../hooks/useMultiplayer';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -11,21 +12,26 @@ type Tab = 'leaderboard' | 'history';
 interface Props {
   user: User;
   elo: number;
+  matchPhase: MatchPhase;
+  queueSize: number;
+  opponentName: string | null;
+  error: string | null;
   onFindMatch: () => void;
+  onCancelSearch: () => void;
   onBack: () => void;
   isMobile?: boolean;
 }
 
-export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile }: Props) {
+export default function RankedScreen({
+  user, elo, matchPhase, queueSize, opponentName, error,
+  onFindMatch, onCancelSearch, onBack, isMobile,
+}: Props) {
   const [tab, setTab] = useState<Tab>('leaderboard');
-  const [searching, setSearching] = useState(false);
   const rankCol = getRankColor(elo);
   const rankLabel = getRankLabel(elo);
 
-  function handleFindMatch() {
-    setSearching(true);
-    onFindMatch();
-  }
+  const isSearching = matchPhase === 'queuing';
+  const isConnecting = matchPhase === 'connecting';
 
   return (
     <div style={{
@@ -39,12 +45,14 @@ export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile 
       boxSizing: 'border-box',
     }}>
       {/* Back button */}
-      <button onClick={onBack} style={{
-        position: 'absolute', top: 16, left: 16, zIndex: 2,
-        background: 'none', border: `1px solid ${C.border}`,
-        borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
-        fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
-      }}>← BACK</button>
+      {!isSearching && !isConnecting && (
+        <button onClick={onBack} style={{
+          position: 'absolute', top: 16, left: 16, zIndex: 2,
+          background: 'none', border: `1px solid ${C.border}`,
+          borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
+          fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
+        }}>← BACK</button>
+      )}
 
       {/* Ambient glow */}
       <div style={{
@@ -70,31 +78,68 @@ export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile 
         }}>{rankLabel}</div>
       </div>
 
-      {/* Online players */}
-      <div style={{
-        zIndex: 1, display: 'flex', alignItems: 'center', gap: 6,
-      }}>
+      {/* Queue info */}
+      {isSearching && (
         <div style={{
-          width: 6, height: 6, borderRadius: '50%',
-          background: '#22cc44', boxShadow: '0 0 6px #22cc44',
-        }} />
-        <span style={{
-          fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
-        }}>0 online</span>
-      </div>
+          zIndex: 1, display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <div style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: '#22cc44', boxShadow: '0 0 6px #22cc44',
+          }} />
+          <span style={{
+            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.8,
+          }}>{queueSize} in queue</span>
+        </div>
+      )}
 
-      {/* Find Match button */}
-      <button onClick={handleFindMatch} disabled={searching} style={{
-        zIndex: 1, padding: '14px 48px',
-        background: searching ? C.panel : C.bg,
-        border: `2px solid ${searching ? C.dim : C.p2}`,
-        borderRadius: 5, cursor: searching ? 'default' : 'pointer',
-        fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
-        letterSpacing: 4, color: searching ? C.dim : C.white,
-        boxShadow: searching ? 'none' : `0 0 12px ${C.p2}44, 0 0 24px ${C.p2}18`,
-      }}>
-        {searching ? 'SEARCHING...' : 'FIND MATCH'}
-      </button>
+      {isConnecting && (
+        <div style={{
+          zIndex: 1, fontFamily: 'monospace', fontSize: 11, color: C.p2,
+          letterSpacing: 2,
+        }}>
+          MATCH FOUND — {opponentName}
+        </div>
+      )}
+
+      {/* Find Match / Cancel button */}
+      {isSearching ? (
+        <button onClick={onCancelSearch} style={{
+          zIndex: 1, padding: '14px 48px',
+          background: C.panel,
+          border: `2px solid ${C.text}44`,
+          borderRadius: 5, cursor: 'pointer',
+          fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
+          letterSpacing: 4, color: C.white,
+        }}>
+          CANCEL
+        </button>
+      ) : isConnecting ? (
+        <div style={{
+          zIndex: 1, fontFamily: 'monospace', fontSize: 10, color: C.text,
+          letterSpacing: 3,
+        }}>CONNECTING...</div>
+      ) : (
+        <button onClick={onFindMatch} style={{
+          zIndex: 1, padding: '14px 48px',
+          background: C.bg,
+          border: `2px solid ${C.p2}`,
+          borderRadius: 5, cursor: 'pointer',
+          fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
+          letterSpacing: 4, color: C.white,
+          boxShadow: `0 0 12px ${C.p2}44, 0 0 24px ${C.p2}18`,
+        }}>
+          FIND MATCH
+        </button>
+      )}
+
+      {/* Error display */}
+      {error && (
+        <div style={{
+          zIndex: 1, fontFamily: 'monospace', fontSize: 10,
+          color: '#ff6b6b', textAlign: 'center', maxWidth: 300,
+        }}>{error}</div>
+      )}
 
       {/* Tabs */}
       <div style={{
@@ -127,11 +172,7 @@ export default function RankedScreen({ user, elo, onFindMatch, onBack, isMobile 
         padding: 16,
         boxSizing: 'border-box',
       }}>
-        {tab === 'leaderboard' ? (
-          <LeaderboardTab />
-        ) : (
-          <HistoryTab />
-        )}
+        {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab />}
       </div>
     </div>
   );
