@@ -1,11 +1,14 @@
 // Durable Object: one per active match
 // Holds authoritative game state, relays actions via WebSocket
+// Flow: waiting → confirming (15s timeout) → countdown (3,2,1) → playing → ended
 
 import { DurableObject } from 'cloudflare:workers';
 import type { Owner } from '../../shared/types';
 import { createInitialState, gameReducer, type GameState, type Action } from '../../shared/game/engine';
 import { getGravityMs } from '../../shared/game/engine';
 import type { ClientGameState, ServerMessage } from './protocol';
+
+const CONFIRM_TIMEOUT_MS = 15_000;
 
 interface PlayerConn {
   ws: WebSocket;
@@ -14,10 +17,14 @@ interface PlayerConn {
   elo: number;
 }
 
+type MatchPhase = 'waiting' | 'confirming' | 'countdown' | 'playing' | 'ended';
+
 export class Match extends DurableObject {
   private players: Map<Owner, PlayerConn> = new Map();
   private state: GameState | null = null;
-  private gravityAlarm: number | null = null;
+  private matchPhase: MatchPhase = 'waiting';
+  private confirmed: Set<Owner> = new Set();
+  private countdownValue: number = 3;
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -44,29 +51,97 @@ export class Match extends DurableObject {
 
     this.players.set(playerNum, { ws: server, userId, displayName, elo });
 
-    // When both players connected, start the game
+    // When both players connected, enter confirmation phase
     if (this.players.size === 2) {
-      this.startGame();
+      this.startConfirmPhase();
     }
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  private startConfirmPhase() {
+    this.matchPhase = 'confirming';
+    this.confirmed.clear();
+
+    const p1 = this.players.get(1 as Owner)!;
+    const p2 = this.players.get(2 as Owner)!;
+
+    // Tell each player about the confirmation phase
+    this.send(p1.ws, {
+      type: 'CONFIRM_PHASE',
+      p1Name: p1.displayName,
+      p2Name: p2.displayName,
+      myPlayer: 1 as Owner,
+      timeoutMs: CONFIRM_TIMEOUT_MS,
+    });
+    this.send(p2.ws, {
+      type: 'CONFIRM_PHASE',
+      p1Name: p1.displayName,
+      p2Name: p2.displayName,
+      myPlayer: 2 as Owner,
+      timeoutMs: CONFIRM_TIMEOUT_MS,
+    });
+
+    // Set timeout alarm
+    this.ctx.storage.put('alarmType', 'confirm-timeout');
+    this.ctx.storage.setAlarm(Date.now() + CONFIRM_TIMEOUT_MS);
+  }
+
+  private handleConfirm(player: Owner) {
+    if (this.matchPhase !== 'confirming') return;
+
+    this.confirmed.add(player);
+
+    // Broadcast that this player confirmed
+    for (const [, conn] of this.players) {
+      this.send(conn.ws, { type: 'PLAYER_CONFIRMED', player });
+    }
+
+    // If both confirmed, start countdown
+    if (this.confirmed.size === 2) {
+      this.startCountdown();
+    }
+  }
+
+  private startCountdown() {
+    this.matchPhase = 'countdown';
+    this.countdownValue = 3;
+
+    const p1 = this.players.get(1 as Owner)!;
+    const p2 = this.players.get(2 as Owner)!;
+
+    // Send BOTH_CONFIRMED to each player
+    this.send(p1.ws, {
+      type: 'BOTH_CONFIRMED',
+      myPlayer: 1 as Owner,
+      p1Name: p1.displayName,
+      p2Name: p2.displayName,
+    });
+    this.send(p2.ws, {
+      type: 'BOTH_CONFIRMED',
+      myPlayer: 2 as Owner,
+      p1Name: p1.displayName,
+      p2Name: p2.displayName,
+    });
+
+    // Start countdown: first tick after 1 second
+    this.ctx.storage.put('alarmType', 'countdown');
+    this.ctx.storage.setAlarm(Date.now() + 1000);
+  }
+
   private startGame() {
+    this.matchPhase = 'playing';
     this.state = createInitialState();
-    // Send initial state to both players
     this.broadcastState();
-    // Start gravity for player 1
     this.scheduleGravity();
   }
 
   private toClientState(forPlayer: Owner): ClientGameState {
     const s = this.state!;
     const myNext = forPlayer === 1 ? s.p1Next : s.p2Next;
-    // Hide opponent's next piece until P2 has placed (opening visibility rule)
     const opponentNext = forPlayer === 1
       ? (s.p2HasPlaced ? s.p2Next : null)
-      : s.p1Next; // P2 can always see P1's next
+      : s.p1Next;
 
     return {
       board: s.board,
@@ -111,45 +186,102 @@ export class Match extends DurableObject {
     if (!this.state || this.state.phase === 'ended') return;
     const activeScore = this.state.scores[this.state.active - 1];
     const ms = getGravityMs(activeScore);
+    this.ctx.storage.put('alarmType', 'gravity');
     this.ctx.storage.setAlarm(Date.now() + ms);
   }
 
   async alarm() {
-    if (!this.state || this.state.phase === 'ended') return;
-    this.state = gameReducer(this.state, { type: 'GRAVITY' });
+    const alarmType = await this.ctx.storage.get('alarmType') as string | undefined;
 
-    // If grounded, schedule lock delay
-    if (this.state.isGrounded) {
-      // Use a shorter alarm for lock
-      this.ctx.storage.setAlarm(Date.now() + 500);
-      this.broadcastState();
+    // Confirmation timeout
+    if (alarmType === 'confirm-timeout') {
+      if (this.matchPhase === 'confirming') {
+        for (const [, conn] of this.players) {
+          this.send(conn.ws, { type: 'CONFIRM_TIMEOUT' });
+        }
+        // Close connections after a short delay
+        for (const [, conn] of this.players) {
+          try { conn.ws.close(1000, 'Confirm timeout'); } catch {}
+        }
+        this.matchPhase = 'ended';
+      }
       return;
     }
 
-    this.broadcastState();
-    this.scheduleGravity();
+    // Countdown ticks
+    if (alarmType === 'countdown') {
+      if (this.matchPhase !== 'countdown') return;
+
+      // Send current countdown value
+      for (const [, conn] of this.players) {
+        this.send(conn.ws, { type: 'COUNTDOWN', count: this.countdownValue });
+      }
+
+      this.countdownValue--;
+
+      if (this.countdownValue > 0) {
+        // Next tick
+        this.ctx.storage.put('alarmType', 'countdown');
+        this.ctx.storage.setAlarm(Date.now() + 1000);
+      } else {
+        // Countdown finished, start game after a brief pause
+        this.ctx.storage.put('alarmType', 'countdown-done');
+        this.ctx.storage.setAlarm(Date.now() + 1000);
+      }
+      return;
+    }
+
+    // Countdown done → start game
+    if (alarmType === 'countdown-done') {
+      this.startGame();
+      return;
+    }
+
+    // Gravity alarm (playing phase)
+    if (alarmType === 'gravity') {
+      if (!this.state || this.state.phase === 'ended') return;
+      this.state = gameReducer(this.state, { type: 'GRAVITY' });
+
+      if (this.state.isGrounded) {
+        this.ctx.storage.put('alarmType', 'gravity');
+        this.ctx.storage.setAlarm(Date.now() + 500);
+        this.broadcastState();
+        return;
+      }
+
+      this.broadcastState();
+      this.scheduleGravity();
+    }
   }
 
   webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
-    if (!this.state) return;
     const data = JSON.parse(message as string);
 
+    // Handle confirmation
+    if (data.type === 'CONFIRM') {
+      let sender: Owner | null = null;
+      for (const [playerNum, conn] of this.players) {
+        if (conn.ws === ws) { sender = playerNum; break; }
+      }
+      if (sender) this.handleConfirm(sender);
+      return;
+    }
+
     if (data.type === 'ACTION') {
-      // Find which player this WebSocket belongs to
+      if (!this.state || this.matchPhase !== 'playing') return;
+
       let sender: Owner | null = null;
       for (const [playerNum, conn] of this.players) {
         if (conn.ws === ws) { sender = playerNum; break; }
       }
       if (!sender) return;
 
-      // Only the active player can send actions
       if (sender !== this.state.active) {
         this.send(ws, { type: 'ERROR', message: 'Not your turn' });
         return;
       }
 
       const action = data.action as Action;
-      // Validate action type
       const validTypes = ['MOVE', 'ROTATE', 'SOFT_DROP', 'HARD_DROP'];
       if (!validTypes.includes(action.type)) return;
 
@@ -157,8 +289,8 @@ export class Match extends DurableObject {
       this.state = gameReducer(this.state, action);
       this.broadcastState();
 
-      // If game ended, notify
       if (this.state.phase === 'ended') {
+        this.matchPhase = 'ended';
         for (const [, conn] of this.players) {
           this.send(conn.ws, {
             type: 'GAME_END',
@@ -170,7 +302,6 @@ export class Match extends DurableObject {
         return;
       }
 
-      // If turn changed (hard drop locked piece), reschedule gravity
       if (this.state.active !== prevActive || action.type === 'HARD_DROP') {
         this.scheduleGravity();
       }
@@ -178,7 +309,6 @@ export class Match extends DurableObject {
   }
 
   webSocketClose(ws: WebSocket) {
-    // Find which player disconnected
     let disconnected: Owner | null = null;
     for (const [playerNum, conn] of this.players) {
       if (conn.ws === ws) {

@@ -5,7 +5,32 @@ import type { ClientMessage, ServerMessage, ClientGameState } from '../../../ser
 
 const SERVER_URL = 'wss://tetchess-server.alex-lisitzky.workers.dev';
 
-export type MatchPhase = 'idle' | 'queuing' | 'connecting' | 'playing' | 'ended' | 'opponent_disconnected';
+export type MatchPhase =
+  | 'idle'
+  | 'queuing'
+  | 'connecting'
+  | 'confirming'
+  | 'countdown'
+  | 'playing'
+  | 'ended'
+  | 'confirm_timeout'
+  | 'opponent_disconnected';
+
+interface ConfirmInfo {
+  p1Name: string;
+  p2Name: string;
+  myPlayer: Owner;
+  timeoutMs: number;
+  p1Confirmed: boolean;
+  p2Confirmed: boolean;
+}
+
+interface CountdownInfo {
+  myPlayer: Owner;
+  p1Name: string;
+  p2Name: string;
+  count: number;
+}
 
 interface MultiplayerState {
   phase: MatchPhase;
@@ -15,11 +40,14 @@ interface MultiplayerState {
   gameState: ClientGameState | null;
   endResult: { winner: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats] } | null;
   error: string | null;
+  confirmInfo: ConfirmInfo | null;
+  countdownInfo: CountdownInfo | null;
 }
 
 interface MultiplayerActions {
   joinQueue: (userId: string, displayName: string, elo: number) => void;
   leaveQueue: () => void;
+  confirm: () => void;
   sendAction: (action: Action) => void;
   reset: () => void;
 }
@@ -32,6 +60,8 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const [gameState, setGameState] = useState<ClientGameState | null>(null);
   const [endResult, setEndResult] = useState<MultiplayerState['endResult']>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmInfo, setConfirmInfo] = useState<ConfirmInfo | null>(null);
+  const [countdownInfo, setCountdownInfo] = useState<CountdownInfo | null>(null);
 
   const queueWs = useRef<WebSocket | null>(null);
   const matchWs = useRef<WebSocket | null>(null);
@@ -79,7 +109,6 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
           displayName,
           elo,
         };
-        // The matchmaker will close this WebSocket; we connect to the Match DO
       }
 
       if (data.type === 'ERROR') {
@@ -88,7 +117,6 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     };
 
     ws.onclose = () => {
-      // If we got matched, connect to the match
       if (matchInfoRef.current) {
         connectToMatch();
       }
@@ -115,13 +143,56 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     matchWs.current = ws;
 
     ws.onopen = () => {
-      setPhase('playing');
+      // Don't go to 'playing' yet — wait for CONFIRM_PHASE
+      setPhase('connecting');
     };
 
     ws.onmessage = (ev) => {
       const data: ServerMessage = JSON.parse(ev.data);
 
+      if (data.type === 'CONFIRM_PHASE') {
+        setPhase('confirming');
+        setConfirmInfo({
+          p1Name: data.p1Name,
+          p2Name: data.p2Name,
+          myPlayer: data.myPlayer,
+          timeoutMs: data.timeoutMs,
+          p1Confirmed: false,
+          p2Confirmed: false,
+        });
+      }
+
+      if (data.type === 'PLAYER_CONFIRMED') {
+        setConfirmInfo(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            p1Confirmed: data.player === 1 ? true : prev.p1Confirmed,
+            p2Confirmed: data.player === 2 ? true : prev.p2Confirmed,
+          };
+        });
+      }
+
+      if (data.type === 'BOTH_CONFIRMED') {
+        setPhase('countdown');
+        setCountdownInfo({
+          myPlayer: data.myPlayer,
+          p1Name: data.p1Name,
+          p2Name: data.p2Name,
+          count: 0, // will be updated by COUNTDOWN messages
+        });
+      }
+
+      if (data.type === 'COUNTDOWN') {
+        setCountdownInfo(prev => prev ? { ...prev, count: data.count } : prev);
+      }
+
+      if (data.type === 'CONFIRM_TIMEOUT') {
+        setPhase('confirm_timeout');
+      }
+
       if (data.type === 'GAME_STATE') {
+        setPhase('playing');
         setGameState(data.state);
       }
 
@@ -140,9 +211,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     };
 
     ws.onclose = () => {
-      if (phase !== 'ended') {
-        // Unexpected close
-      }
+      // handled by phase state
     };
 
     ws.onerror = () => {
@@ -159,6 +228,13 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     }
     setPhase('idle');
     setQueueSize(0);
+  }, []);
+
+  const confirm = useCallback(() => {
+    if (matchWs.current?.readyState === WebSocket.OPEN) {
+      const msg: ClientMessage = { type: 'CONFIRM' };
+      matchWs.current.send(JSON.stringify(msg));
+    }
   }, []);
 
   const sendAction = useCallback((action: Action) => {
@@ -181,10 +257,12 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     setGameState(null);
     setEndResult(null);
     setError(null);
+    setConfirmInfo(null);
+    setCountdownInfo(null);
   }, []);
 
   return [
-    { phase, queueSize, myPlayer, opponentName, gameState, endResult, error },
-    { joinQueue, leaveQueue, sendAction, reset },
+    { phase, queueSize, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo },
+    { joinQueue, leaveQueue, confirm, sendAction, reset },
   ];
 }

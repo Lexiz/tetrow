@@ -168,6 +168,15 @@ export default function RankedScreen({
         }}>
           {lobbyCount !== null ? `${lobbyCount} in lobby` : 'connecting...'}
         </span>
+        <button onClick={() => {
+          setLobbyCount(null);
+          fetch(`${SERVER_URL}/api/lobby`).then(r => r.json()).then(d => setLobbyCount(d.count)).catch(() => {});
+        }} style={{
+          background: 'none', border: `1px solid ${C.border}`,
+          borderRadius: 3, padding: '2px 8px', cursor: 'pointer',
+          fontFamily: 'monospace', fontSize: 8, color: C.white, letterSpacing: 1,
+          marginLeft: 4,
+        }}>↻</button>
       </div>
 
       {/* Error display */}
