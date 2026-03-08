@@ -99,7 +99,7 @@ export default function App() {
       setResult({
         p1Score: er.scores[0],
         p2Score: er.scores[1],
-        toppedOut: null,
+        toppedOut: er.toppedOut,
         stats: er.stats,
       });
       setScreen('end');
@@ -121,6 +121,7 @@ export default function App() {
           er.scores[0],
           er.scores[1],
           er.winner,
+          er.matchId,
         )
           .then(() => {
             setFirestoreError(null);
