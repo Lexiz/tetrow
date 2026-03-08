@@ -13,12 +13,13 @@ interface Props {
   p1Name?: string;
   p2Name?: string;
   stats: [PlayerStats, PlayerStats];
-  onPlayAgain: () => void;
-  onHome: () => void;
+  onRematch: () => void;
+  onClose: () => void;
+  rematchWaiting?: boolean;
   firestoreError?: string | null;
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, onPlayAgain, onHome, firestoreError }: Props) {
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
   const penalty1 = p1ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const penalty2 = p2ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const finalP1 = p1Score;
@@ -62,12 +63,13 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
         fontFamily: "'Courier New', monospace", fontSize: 32, fontWeight: 900,
         letterSpacing: 3, color: winCol, zIndex: 1,
         textShadow: `0 0 20px ${winCol}, 0 0 40px ${winCol}88, 0 0 70px ${winCol}33`,
+        maxWidth: W - 40, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {winnerName ? `${winnerName.toUpperCase()} WINS` : 'DRAW'}
       </div>
 
       {/* Score cards */}
-      <div style={{ display: 'flex', gap: 24, zIndex: 1 }}>
+      <div style={{ display: 'flex', gap: 16, zIndex: 1, maxWidth: W - 40 }}>
         {players.map(({ n, name, final, penalty, topped, win, col, brt, stat }) => {
           const opCol = n === 1 ? C.p2 : C.p1;
           return (
@@ -76,21 +78,24 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
                 ? `linear-gradient(150deg, ${col}18 0%, ${C.panel} 55%)`
                 : C.panel,
               border: `1.5px solid ${win ? col : '#1a1a2c'}`,
-              borderRadius: 8, padding: '18px 24px', minWidth: 180,
+              borderRadius: 8, padding: '14px 18px',
+              width: 170, maxWidth: 170, minWidth: 0,
               display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center',
               boxShadow: win
                 ? `0 0 30px ${col}55, 0 0 60px ${col}22, inset 0 0 24px ${col}0c`
                 : 'none',
+              boxSizing: 'border-box',
             }}>
               <div style={{
-                fontFamily: 'monospace', fontSize: 10, letterSpacing: 3, color: col,
+                fontFamily: 'monospace', fontSize: 10, letterSpacing: 2, color: col,
                 textShadow: win ? `0 0 12px ${col}` : 'none',
-                maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                width: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap', textAlign: 'center',
               }}>{name.toUpperCase()}</div>
 
               {/* Final score */}
               <div style={{
-                fontFamily: "'Courier New', monospace", fontSize: 30, fontWeight: 900,
+                fontFamily: "'Courier New', monospace", fontSize: 28, fontWeight: 900,
                 color: C.white, textShadow: win ? `0 0 16px ${col}88` : 'none',
               }}>{final.toLocaleString()}</div>
 
@@ -131,7 +136,7 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
                 <div style={{ ...dimText, textAlign: 'center', marginBottom: 6, letterSpacing: 3 }}>LINES CLEARED</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, textAlign: 'center' }}>
                   {(['4', '3', '2', '1'] as const).map((label, i) => {
-                    const count = stat.clears[3 - i]; // [singles, doubles, triples, quads] → show quads first
+                    const count = stat.clears[3 - i];
                     return (
                       <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                         <span style={{ fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.4 }}>{label}L</span>
@@ -161,23 +166,24 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
       )}
 
       <div style={{ display: 'flex', gap: 16, marginTop: 8, zIndex: 1 }}>
-        <button onClick={onHome} style={{
+        <button onClick={onRematch} disabled={rematchWaiting} style={{
           padding: '12px 36px',
           background: 'transparent',
           border: `1.5px solid ${C.p2}`,
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
-          letterSpacing: 4, color: C.p2, cursor: 'pointer',
+          letterSpacing: 4, color: C.p2, cursor: rematchWaiting ? 'default' : 'pointer',
           boxShadow: `0 0 16px ${C.p2}55, 0 0 32px ${C.p2}22`,
-        }}>RANKED</button>
-        <button onClick={onPlayAgain} style={{
+          opacity: rematchWaiting ? 0.6 : 1,
+        }}>{rematchWaiting ? 'WAITING...' : 'REMATCH'}</button>
+        <button onClick={onClose} style={{
           padding: '12px 36px',
           background: 'transparent',
           border: `1.5px solid ${C.border}`,
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
           letterSpacing: 4, color: C.text, opacity: 0.7, cursor: 'pointer',
-        }}>MENU</button>
+        }}>CLOSE</button>
       </div>
     </div>
   );

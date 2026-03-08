@@ -480,6 +480,11 @@ function HistoryTab({ userId }: { userId: string }) {
             <span style={{
               fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
             }}>{myScore}-{oppScore}</span>
+            {m.durationMs != null && (
+              <span style={{
+                fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.4,
+              }}>{formatDuration(m.durationMs)}</span>
+            )}
             <span style={{
               fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
               color: eloChange >= 0 ? '#22cc44' : '#ff4466',
@@ -489,6 +494,13 @@ function HistoryTab({ userId }: { userId: string }) {
       })}
     </div>
   );
+}
+
+function formatDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 function getRankLabel(elo: number): string {

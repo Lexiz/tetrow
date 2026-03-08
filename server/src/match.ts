@@ -26,6 +26,8 @@ export class Match extends DurableObject {
   private confirmed: Set<Owner> = new Set();
   private countdownValue: number = 3;
   private matchId: string = '';
+  private gameStartedAt: number = 0;
+  private rematchRequests: Set<Owner> = new Set();
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -134,6 +136,8 @@ export class Match extends DurableObject {
   private startGame() {
     this.matchPhase = 'playing';
     this.state = createInitialState();
+    this.gameStartedAt = Date.now();
+    this.rematchRequests.clear();
     this.broadcastState();
     this.scheduleGravity();
   }
@@ -188,6 +192,7 @@ export class Match extends DurableObject {
     if (!this.state) return;
     const p1 = this.players.get(1 as Owner);
     const p2 = this.players.get(2 as Owner);
+    const durationMs = this.gameStartedAt ? Date.now() - this.gameStartedAt : 0;
     const msg: ServerMessage = {
       type: 'GAME_END',
       winner: this.state.winner,
@@ -195,6 +200,7 @@ export class Match extends DurableObject {
       scores: this.state.scores,
       stats: this.state.stats,
       matchId: this.matchId,
+      durationMs,
       p1Id: p1?.userId ?? '',
       p1Name: p1?.displayName ?? 'Player 1',
       p2Id: p2?.userId ?? '',
@@ -316,6 +322,26 @@ export class Match extends DurableObject {
         if (conn.ws === ws) { sender = playerNum; break; }
       }
       if (sender) this.handleConfirm(sender);
+      return;
+    }
+
+    // Handle rematch request
+    if (data.type === 'REMATCH_REQUEST') {
+      if (this.matchPhase !== 'ended') return;
+      let sender: Owner | null = null;
+      for (const [playerNum, conn] of this.players) {
+        if (conn.ws === ws) { sender = playerNum; break; }
+      }
+      if (!sender) return;
+
+      this.rematchRequests.add(sender);
+      this.send(ws, { type: 'REMATCH_WAITING' });
+
+      // Both players want rematch → restart confirmation phase
+      if (this.rematchRequests.size === 2) {
+        this.rematchRequests.clear();
+        this.startConfirmPhase();
+      }
       return;
     }
 
