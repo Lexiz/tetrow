@@ -15,9 +15,24 @@ Branch naming: `feature/`, `fix/`, `refactor/` prefixes.
 
 ## Versioning
 
-- Source of truth: `shared/version.ts` → `APP_VERSION`
-- Semantic versioning: MAJOR.MINOR.PATCH
-- Bump with each feature branch
+Source of truth: `shared/version.ts` → `APP_VERSION`. Follows semantic versioning.
+
+Every PR is tagged with one of:
+
+| Tag | Version bump | When to use |
+|---|---|---|
+| `fix` | PATCH (0.0.X) | Bug fixes — auth issues, layout problems, broken features |
+| `polish` | PATCH (0.0.X) | Style tweaks, text changes, small UI adjustments |
+| `feature` | MINOR (0.X.0) | New functionality — AI mode, new screen, leaderboard |
+| `breaking` | MAJOR (X.0.0) | Fundamental changes — multiplayer launch, major redesign |
+| `internal` | No bump | Repo cleanup, dev tooling, docs, refactors with no user-visible change |
+
+Rules:
+- Version bump is included **in the same PR** as the change (update `shared/version.ts`)
+- Multiple changes in one PR → use the **highest** applicable tag
+- MINOR resets PATCH to 0 (e.g. 0.3.2 → 0.4.0)
+- MAJOR resets MINOR and PATCH (e.g. 0.4.2 → 1.0.0)
+- PR title is prefixed with the tag in brackets, e.g. `[fix] Resolve auth sign-in on mobile`
 
 ## Project Structure
 
