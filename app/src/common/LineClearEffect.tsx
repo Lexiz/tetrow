@@ -3,11 +3,12 @@ import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { Owner } from '../../../shared/types';
 
-const { CELL_SIZE, COLS } = CONFIG;
+const { COLS } = CONFIG;
 
 interface Props {
   rows: number[];
   player: Owner;
+  cellSize?: number;
 }
 
 interface Particle {
@@ -21,7 +22,8 @@ interface Particle {
   rot: number;
 }
 
-export default function LineClearEffect({ rows, player }: Props) {
+export default function LineClearEffect({ rows, player, cellSize: cellSizeProp }: Props) {
+  const S = cellSizeProp ?? CONFIG.CELL_SIZE;
   const [phase, setPhase] = useState<'highlight' | 'flash' | 'explode' | 'done'>('highlight');
 
   useEffect(() => {
@@ -37,23 +39,23 @@ export default function LineClearEffect({ rows, player }: Props) {
   // Bounding box for the cleared rows
   const minRow = Math.min(...rows);
   const maxRow = Math.max(...rows);
-  const borderTop = minRow * CELL_SIZE;
-  const borderHeight = (maxRow - minRow + 1) * CELL_SIZE;
+  const borderTop = minRow * S;
+  const borderHeight = (maxRow - minRow + 1) * S;
 
   // Generate block-shaped explosion particles (one per cell in each cleared row)
   const particles = useMemo(() => {
     const p: Particle[] = [];
     for (const row of rows) {
       for (let c = 0; c < COLS; c++) {
-        const cx = c * CELL_SIZE;
-        const cy = row * CELL_SIZE;
+        const cx = c * S;
+        const cy = row * S;
         p.push({
           x: cx,
           y: cy,
           dx: (Math.random() - 0.5) * 160,
           dy: (Math.random() - 0.5) * 100 - 30,
-          w: CELL_SIZE * (0.4 + Math.random() * 0.5),
-          h: CELL_SIZE * (0.3 + Math.random() * 0.4),
+          w: S * (0.4 + Math.random() * 0.5),
+          h: S * (0.3 + Math.random() * 0.4),
           color: Math.random() > 0.4 ? col : colB,
           rot: (Math.random() - 0.5) * 180,
         });
@@ -61,8 +63,8 @@ export default function LineClearEffect({ rows, player }: Props) {
       // Extra small debris
       for (let i = 0; i < 8; i++) {
         p.push({
-          x: Math.random() * COLS * CELL_SIZE,
-          y: row * CELL_SIZE + Math.random() * CELL_SIZE,
+          x: Math.random() * COLS * S,
+          y: row * S + Math.random() * S,
           dx: (Math.random() - 0.5) * 200,
           dy: (Math.random() - 0.5) * 120 - 40,
           w: 2 + Math.random() * 3,
@@ -73,19 +75,20 @@ export default function LineClearEffect({ rows, player }: Props) {
       }
     }
     return p;
-  }, [rows, col, colB]);
+  }, [rows, col, colB, S]);
 
   if (phase === 'done') return null;
 
-  const showSolid = phase === 'highlight' || phase === 'flash';
+  const showSolid = phase === 'highlight' || phase === 'flash' || phase === 'explode';
+  const fadingOut = phase === 'explode';
 
   return (
     <div style={{
       position: 'absolute',
       top: 2, // inside board border
       left: 2,
-      width: COLS * CELL_SIZE,
-      height: CONFIG.ROWS * CELL_SIZE,
+      width: COLS * S,
+      height: CONFIG.ROWS * S,
       pointerEvents: 'none',
       zIndex: 4,
       overflow: 'hidden',
@@ -97,29 +100,33 @@ export default function LineClearEffect({ rows, player }: Props) {
             key={`fill-${row}-${c}`}
             style={{
               position: 'absolute',
-              top: row * CELL_SIZE,
-              left: c * CELL_SIZE,
-              width: CELL_SIZE,
-              height: CELL_SIZE,
-              background: phase === 'flash'
-                ? `${C.white}cc`
-                : col,
-              opacity: phase === 'flash' ? 1 : 0.85,
+              top: row * S,
+              left: c * S,
+              width: S,
+              height: S,
+              background: fadingOut
+                ? col
+                : phase === 'flash'
+                  ? `${C.white}cc`
+                  : col,
+              opacity: fadingOut ? 0 : phase === 'flash' ? 1 : 0.85,
               border: `1px solid ${phase === 'flash' ? C.white : col}44`,
               boxSizing: 'border-box',
-              transition: 'background 0.15s ease-out, opacity 0.15s ease-out',
+              transition: fadingOut
+                ? 'opacity 0.5s ease-out'
+                : 'background 0.15s ease-out, opacity 0.15s ease-out',
             }}
           />
         ))
       )}
 
       {/* Highlight border around all clearing rows */}
-      {showSolid && (
+      {showSolid && !fadingOut && (
         <div style={{
           position: 'absolute',
           top: borderTop - 2,
           left: -2,
-          width: COLS * CELL_SIZE + 4,
+          width: COLS * S + 4,
           height: borderHeight + 4,
           border: `2px solid ${phase === 'flash' ? C.white : col}`,
           borderRadius: 2,

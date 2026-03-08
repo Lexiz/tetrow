@@ -98,6 +98,7 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty }: Props) {
               key={`clear-${state.lastClear.id}`}
               rows={state.clearedRows}
               player={state.lastClear.player}
+              cellSize={cellSize}
             />
           )}
         </div>
