@@ -18,6 +18,7 @@ import MatchConfirmScreen from './screens/MatchConfirmScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
+import { useVersionCheck } from './hooks/useVersionCheck';
 import { getOrCreateProfile, saveMyMatchResult, type UserProfile } from './firestore';
 
 interface MatchResult {
@@ -32,7 +33,7 @@ interface MatchResult {
 const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('login');
+  const [screen, setScreenRaw] = useState<Screen>('login');
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -40,6 +41,13 @@ export default function App() {
   const isMobile = useIsMobile();
   const { user, loading, error: authError, signIn, signOut } = useAuth();
   const [mp, mpActions] = useMultiplayer();
+  const checkVersion = useVersionCheck();
+
+  // Wrap setScreen to check for new version on every navigation
+  const setScreen = (s: Screen) => {
+    checkVersion();
+    setScreenRaw(s);
+  };
 
   // Redirect to login if not authenticated
   const currentScreen = (!user && screen !== 'login') ? 'login' : screen;
