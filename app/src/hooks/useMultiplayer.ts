@@ -41,8 +41,10 @@ interface MultiplayerState {
   gameState: ClientGameState | null;
   endResult: {
     winner: Owner | null;
+    toppedOut: Owner | null;
     scores: [number, number];
     stats: [PlayerStats, PlayerStats];
+    matchId: string;
     p1Id: string;
     p1Name: string;
     p2Id: string;
@@ -251,8 +253,10 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
       if (data.type === 'GAME_END') {
         setEndResult({
           winner: data.winner,
+          toppedOut: data.toppedOut,
           scores: data.scores,
           stats: data.stats,
+          matchId: data.matchId,
           p1Id: data.p1Id,
           p1Name: data.p1Name,
           p2Id: data.p2Id,

@@ -54,6 +54,7 @@ export default {
 
       const matchUrl = new URL('/ws', url.origin);
       matchUrl.search = url.search;
+      matchUrl.searchParams.set('matchId', matchId);
 
       const res = await stub.fetch(new Request(matchUrl, {
         headers: request.headers,

@@ -25,6 +25,7 @@ export class Match extends DurableObject {
   private matchPhase: MatchPhase = 'waiting';
   private confirmed: Set<Owner> = new Set();
   private countdownValue: number = 3;
+  private matchId: string = '';
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -42,6 +43,7 @@ export class Match extends DurableObject {
     const displayName = url.searchParams.get('displayName') ?? 'Player';
     const elo = parseInt(url.searchParams.get('elo') ?? '1200', 10);
     const playerNum = parseInt(url.searchParams.get('player') ?? '0', 10) as Owner;
+    if (!this.matchId) this.matchId = url.searchParams.get('matchId') ?? '';
 
     if (playerNum !== 1 && playerNum !== 2) {
       return new Response('Invalid player number', { status: 400 });
@@ -189,8 +191,10 @@ export class Match extends DurableObject {
     const msg: ServerMessage = {
       type: 'GAME_END',
       winner: this.state.winner,
+      toppedOut: this.state.toppedOut,
       scores: this.state.scores,
       stats: this.state.stats,
+      matchId: this.matchId,
       p1Id: p1?.userId ?? '',
       p1Name: p1?.displayName ?? 'Player 1',
       p2Id: p2?.userId ?? '',

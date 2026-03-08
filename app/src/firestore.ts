@@ -96,6 +96,7 @@ export async function saveMyMatchResult(
   p1Score: number,
   p2Score: number,
   winner: Owner | null,
+  matchId?: string,
 ): Promise<void> {
   // Get my current profile
   const myProfile = await getUserProfile(myId);
@@ -144,7 +145,12 @@ export async function saveMyMatchResult(
     p2EloChange,
     timestamp: serverTimestamp(),
   };
-  await addDoc(collection(db, 'matches'), match);
+  if (matchId) {
+    // Use deterministic ID so both clients write the same document (no duplicates)
+    await setDoc(doc(db, 'matches', matchId), match, { merge: true });
+  } else {
+    await addDoc(collection(db, 'matches'), match);
+  }
 }
 
 // ── Leaderboard ──────────────────────────────────────────────────────────────
