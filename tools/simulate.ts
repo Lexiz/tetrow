@@ -187,7 +187,7 @@ function simulateGame(p1Strategy: Weights, p2Strategy: Weights): {
   winner: Owner | null;
   scores: [number, number];
   stats: [PlayerStats, PlayerStats];
-  toppedOut: Owner | null;
+  toppedOut: [boolean, boolean];
   totalTurns: number;
 } {
   let state = createInitialState();
@@ -236,7 +236,7 @@ function simulateGame(p1Strategy: Weights, p2Strategy: Weights): {
       winner: null,
       scores: state.scores,
       stats: state.stats,
-      toppedOut: null,
+      toppedOut: [false, false],
       totalTurns: turns,
     };
   }
@@ -272,8 +272,8 @@ function runScenario(name: string, p1: Weights, p2: Weights, numGames: number = 
     results.p2Scores.push(r.scores[1]);
     results.totalTurns.push(r.totalTurns);
 
-    if (r.toppedOut === 1) results.p1TopOuts++;
-    if (r.toppedOut === 2) results.p2TopOuts++;
+    if (r.toppedOut[0]) results.p1TopOuts++;
+    if (r.toppedOut[1]) results.p2TopOuts++;
 
     results.p1Stats.basePoints += r.stats[0].basePoints;
     results.p1Stats.bonusPoints += r.stats[0].bonusPoints;

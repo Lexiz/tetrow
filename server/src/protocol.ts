@@ -23,7 +23,7 @@ export interface ClientGameState {
   piece: PieceState;
   scores: [number, number];
   phase: 'playing' | 'equalizer' | 'ended';
-  toppedOut: Owner | null;
+  toppedOut: [boolean, boolean];
   winner: Owner | null;
   myNext: TetrominoType;
   opponentNext: TetrominoType | null; // null until opponent has placed once
@@ -42,7 +42,7 @@ export type ServerMessage =
   | { type: 'COUNTDOWN'; count: number }
   | { type: 'CONFIRM_TIMEOUT' }
   | { type: 'GAME_STATE'; state: ClientGameState }
-  | { type: 'GAME_END'; winner: Owner | null; toppedOut: Owner | null; forfeit: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats]; matchId: string; durationMs: number; p1Id: string; p1Name: string; p2Id: string; p2Name: string; p1Elo: number; p2Elo: number }
+  | { type: 'GAME_END'; winner: Owner | null; toppedOut: [boolean, boolean]; forfeit: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats]; matchId: string; durationMs: number; p1Id: string; p1Name: string; p2Id: string; p2Name: string; p1Elo: number; p2Elo: number }
   | { type: 'REMATCH_WAITING' }
   | { type: 'OPPONENT_DISCONNECTED' }
   | { type: 'ERROR'; message: string };

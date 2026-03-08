@@ -114,7 +114,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
           WebkitTextFillColor: 'transparent',
           filter: `drop-shadow(0 0 20px ${C.p1}44) drop-shadow(0 0 40px ${C.p2}22)`,
           lineHeight: 1,
-        }}>CHESTET</div>
+        }}>TETCHES</div>
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
           color: C.white, opacity: 0.7, marginTop: 8,
@@ -174,7 +174,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
         zIndex: 1, fontFamily: 'monospace', fontSize: 8,
         letterSpacing: 3, color: C.white,
       }}>
-        CHESTET · v{APP_VERSION}
+        TETCHES · v{APP_VERSION}
       </div>
     </div>
   );
