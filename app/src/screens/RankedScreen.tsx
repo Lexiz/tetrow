@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { User } from 'firebase/auth';
@@ -38,6 +38,7 @@ export default function RankedScreen({
 
   const isSearching = matchPhase === 'queuing';
   const isConnecting = matchPhase === 'connecting';
+  const isInQueue = isSearching || isConnecting;
 
   // Connect presence WebSocket on mount, disconnect on unmount
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function RankedScreen({
     return () => onLeaveLobby();
   }, []);
 
-  // Poll lobby count via HTTP (WebSocket presence counts all connected clients)
+  // Poll lobby count via HTTP
   useEffect(() => {
     let active = true;
     async function fetchLobby() {
@@ -64,6 +65,135 @@ export default function RankedScreen({
     return () => { active = false; clearInterval(interval); };
   }, []);
 
+  // If searching or connecting, show the search overlay
+  if (isInQueue) {
+    return (
+      <div style={{
+        width: isMobile ? '100vw' : W,
+        height: isMobile ? '100dvh' : H,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: C.bg, gap: 20,
+        position: 'relative', overflow: 'hidden',
+        padding: isMobile ? '16px' : 0,
+        boxSizing: 'border-box',
+      }}>
+        {/* Animated glow */}
+        <div style={{
+          position: 'absolute', top: '40%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 350, height: 350, borderRadius: '50%',
+          background: isConnecting
+            ? `radial-gradient(circle, ${C.p2}30 0%, transparent 55%)`
+            : `radial-gradient(circle, ${C.p2}18 0%, transparent 60%)`,
+          filter: 'blur(50px)',
+          animation: isConnecting ? 'none' : 'pulse 2s ease-in-out infinite',
+        }} />
+
+        {isConnecting ? (
+          <>
+            {/* Match Found state */}
+            <div style={{
+              zIndex: 1, fontFamily: 'monospace', fontSize: 12, fontWeight: 900,
+              letterSpacing: 5, color: C.p2,
+              textShadow: `0 0 16px ${C.p2}88`,
+            }}>MATCH FOUND</div>
+            <div style={{
+              zIndex: 1, fontFamily: "'Courier New', monospace",
+              fontSize: 20, fontWeight: 900, color: C.white,
+              marginTop: 4,
+            }}>{opponentName}</div>
+            <div style={{
+              zIndex: 1, fontFamily: 'monospace', fontSize: 9,
+              letterSpacing: 3, color: C.text, marginTop: 8,
+            }}>CONNECTING...</div>
+          </>
+        ) : (
+          <>
+            {/* Searching state */}
+            <div style={{
+              zIndex: 1, fontFamily: 'monospace', fontSize: 12, fontWeight: 900,
+              letterSpacing: 5, color: C.white,
+            }}>SEARCHING</div>
+
+            {/* Pulsing ring animation */}
+            <div style={{
+              zIndex: 1, position: 'relative',
+              width: 80, height: 80,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                border: `2px solid ${C.p2}44`,
+                borderRadius: '50%',
+                animation: 'pulse 2s ease-in-out infinite',
+              }} />
+              <div style={{
+                position: 'absolute', inset: -8,
+                border: `1px solid ${C.p2}22`,
+                borderRadius: '50%',
+                animation: 'pulse 2s ease-in-out infinite 0.3s',
+              }} />
+              <div style={{
+                position: 'absolute', inset: -16,
+                border: `1px solid ${C.p2}11`,
+                borderRadius: '50%',
+                animation: 'pulse 2s ease-in-out infinite 0.6s',
+              }} />
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: C.p2, boxShadow: `0 0 12px ${C.p2}`,
+              }} />
+            </div>
+
+            {/* Wait timer */}
+            <SearchTimer />
+
+            {/* Queue size */}
+            <div style={{
+              zIndex: 1, display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <div style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: '#22cc44', boxShadow: '0 0 6px #22cc44',
+              }} />
+              <span style={{
+                fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.8,
+              }}>{queueSize} in queue</span>
+            </div>
+
+            {/* Cancel button */}
+            <button onClick={onCancelSearch} style={{
+              zIndex: 1, padding: '14px 48px', marginTop: 8,
+              background: C.panel,
+              border: `2px solid ${C.text}44`,
+              borderRadius: 5, cursor: 'pointer',
+              fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
+              letterSpacing: 4, color: C.white,
+            }}>CANCEL</button>
+          </>
+        )}
+
+        {/* Error display */}
+        {error && (
+          <div style={{
+            zIndex: 1, fontFamily: 'monospace', fontSize: 10,
+            color: '#ff6b6b', textAlign: 'center', maxWidth: 300,
+          }}>{error}</div>
+        )}
+
+        {/* CSS animation */}
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.05); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Normal ranked screen (not searching)
   return (
     <div style={{
       width: isMobile ? '100vw' : W,
@@ -76,14 +206,12 @@ export default function RankedScreen({
       boxSizing: 'border-box',
     }}>
       {/* Back button */}
-      {!isSearching && !isConnecting && (
-        <button onClick={onBack} style={{
-          position: 'absolute', top: 16, left: 16, zIndex: 2,
-          background: 'none', border: `1px solid ${C.border}`,
-          borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
-          fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
-        }}>← BACK</button>
-      )}
+      <button onClick={onBack} style={{
+        position: 'absolute', top: 16, left: 16, zIndex: 2,
+        background: 'none', border: `1px solid ${C.border}`,
+        borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
+        fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
+      }}>← BACK</button>
 
       {/* Ambient glow */}
       <div style={{
@@ -109,60 +237,16 @@ export default function RankedScreen({
         }}>{rankLabel}</div>
       </div>
 
-      {/* Queue info */}
-      {isSearching && (
-        <div style={{
-          zIndex: 1, display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          <div style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: '#22cc44', boxShadow: '0 0 6px #22cc44',
-          }} />
-          <span style={{
-            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.8,
-          }}>{queueSize} in queue</span>
-        </div>
-      )}
-
-      {isConnecting && (
-        <div style={{
-          zIndex: 1, fontFamily: 'monospace', fontSize: 11, color: C.p2,
-          letterSpacing: 2,
-        }}>
-          MATCH FOUND — {opponentName}
-        </div>
-      )}
-
-      {/* Find Match / Cancel button */}
-      {isSearching ? (
-        <button onClick={onCancelSearch} style={{
-          zIndex: 1, padding: '14px 48px',
-          background: C.panel,
-          border: `2px solid ${C.text}44`,
-          borderRadius: 5, cursor: 'pointer',
-          fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
-          letterSpacing: 4, color: C.white,
-        }}>
-          CANCEL
-        </button>
-      ) : isConnecting ? (
-        <div style={{
-          zIndex: 1, fontFamily: 'monospace', fontSize: 10, color: C.text,
-          letterSpacing: 3,
-        }}>CONNECTING...</div>
-      ) : (
-        <button onClick={onFindMatch} style={{
-          zIndex: 1, padding: '14px 48px',
-          background: C.bg,
-          border: `2px solid ${C.p2}`,
-          borderRadius: 5, cursor: 'pointer',
-          fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
-          letterSpacing: 4, color: C.white,
-          boxShadow: `0 0 12px ${C.p2}44, 0 0 24px ${C.p2}18`,
-        }}>
-          FIND MATCH
-        </button>
-      )}
+      {/* Find Match button */}
+      <button onClick={onFindMatch} style={{
+        zIndex: 1, padding: '14px 48px',
+        background: C.bg,
+        border: `2px solid ${C.p2}`,
+        borderRadius: 5, cursor: 'pointer',
+        fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
+        letterSpacing: 4, color: C.white,
+        boxShadow: `0 0 12px ${C.p2}44, 0 0 24px ${C.p2}18`,
+      }}>FIND MATCH</button>
 
       {/* Lobby count */}
       <div style={{
@@ -233,6 +317,33 @@ export default function RankedScreen({
         {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab userId={user.uid} />}
       </div>
     </div>
+  );
+}
+
+/** Live search timer showing mm:ss */
+function SearchTimer() {
+  const [seconds, setSeconds] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    setSeconds(0);
+    const interval = setInterval(() => {
+      setSeconds(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const display = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  return (
+    <div style={{
+      zIndex: 1, fontFamily: "'Courier New', monospace",
+      fontSize: 24, fontWeight: 900,
+      color: C.white, letterSpacing: 2,
+    }}>{display}</div>
   );
 }
 
