@@ -45,6 +45,7 @@ interface MultiplayerState {
     scores: [number, number];
     stats: [PlayerStats, PlayerStats];
     matchId: string;
+    durationMs: number;
     p1Id: string;
     p1Name: string;
     p2Id: string;
@@ -52,6 +53,7 @@ interface MultiplayerState {
     p1Elo: number;
     p2Elo: number;
   } | null;
+  rematchWaiting: boolean;
   error: string | null;
   confirmInfo: ConfirmInfo | null;
   countdownInfo: CountdownInfo | null;
@@ -63,6 +65,7 @@ interface MultiplayerActions {
   joinQueue: (userId: string, displayName: string, elo: number) => void;
   leaveQueue: () => void;
   confirm: () => void;
+  rematch: () => void;
   sendAction: (action: Action) => void;
   reset: () => void;
 }
@@ -78,6 +81,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const [error, setError] = useState<string | null>(null);
   const [confirmInfo, setConfirmInfo] = useState<ConfirmInfo | null>(null);
   const [countdownInfo, setCountdownInfo] = useState<CountdownInfo | null>(null);
+  const [rematchWaiting, setRematchWaiting] = useState(false);
 
   const lobbyWs = useRef<WebSocket | null>(null);
   const queueWs = useRef<WebSocket | null>(null);
@@ -257,6 +261,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
           scores: data.scores,
           stats: data.stats,
           matchId: data.matchId,
+          durationMs: data.durationMs,
           p1Id: data.p1Id,
           p1Name: data.p1Name,
           p2Id: data.p2Id,
@@ -264,7 +269,12 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
           p1Elo: data.p1Elo,
           p2Elo: data.p2Elo,
         });
+        setRematchWaiting(false);
         setPhase('ended');
+      }
+
+      if (data.type === 'REMATCH_WAITING') {
+        setRematchWaiting(true);
       }
 
       if (data.type === 'OPPONENT_DISCONNECTED') {
@@ -303,6 +313,13 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     }
   }, []);
 
+  const rematch = useCallback(() => {
+    if (matchWs.current?.readyState === WebSocket.OPEN) {
+      const msg: ClientMessage = { type: 'REMATCH_REQUEST' };
+      matchWs.current.send(JSON.stringify(msg));
+    }
+  }, []);
+
   const sendAction = useCallback((action: Action) => {
     if (matchWs.current?.readyState === WebSocket.OPEN) {
       const msg: ClientMessage = { type: 'ACTION', action };
@@ -329,10 +346,11 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     setError(null);
     setConfirmInfo(null);
     setCountdownInfo(null);
+    setRematchWaiting(false);
   }, []);
 
   return [
-    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo },
-    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, sendAction, reset },
+    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo, rematchWaiting },
+    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, rematch, sendAction, reset },
   ];
 }

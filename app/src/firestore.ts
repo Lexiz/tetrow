@@ -70,6 +70,7 @@ export interface MatchRecord {
   winner: Owner | null;
   p1EloChange: number;
   p2EloChange: number;
+  durationMs?: number;
   timestamp: any; // Firestore Timestamp
 }
 
@@ -97,6 +98,7 @@ export async function saveMyMatchResult(
   p2Score: number,
   winner: Owner | null,
   matchId?: string,
+  durationMs?: number,
 ): Promise<void> {
   // Get my current profile
   const myProfile = await getUserProfile(myId);
@@ -143,6 +145,7 @@ export async function saveMyMatchResult(
     winner,
     p1EloChange,
     p2EloChange,
+    ...(durationMs !== undefined ? { durationMs } : {}),
     timestamp: serverTimestamp(),
   };
   if (matchId) {

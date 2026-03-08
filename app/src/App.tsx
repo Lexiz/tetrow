@@ -68,7 +68,7 @@ export default function App() {
 
   // When multiplayer enters confirmation phase, switch to confirm screen
   useEffect(() => {
-    if (mp.phase === 'confirming' && (currentScreen === 'ranked' || currentScreen === 'match-confirm')) {
+    if (mp.phase === 'confirming' && (currentScreen === 'ranked' || currentScreen === 'match-confirm' || currentScreen === 'end')) {
       setScreen('match-confirm');
     }
   }, [mp.phase, currentScreen]);
@@ -82,7 +82,7 @@ export default function App() {
 
   // When multiplayer match starts playing, switch to ranked game screen
   useEffect(() => {
-    if (mp.phase === 'playing' && (currentScreen === 'ranked' || currentScreen === 'match-confirm')) {
+    if (mp.phase === 'playing' && (currentScreen === 'ranked' || currentScreen === 'match-confirm' || currentScreen === 'end')) {
       setScreen('ranked-game');
     }
   }, [mp.phase, currentScreen]);
@@ -126,6 +126,7 @@ export default function App() {
           er.scores[1],
           er.winner,
           er.matchId,
+          er.durationMs,
         )
           .then(() => {
             setFirestoreError(null);
@@ -280,8 +281,9 @@ export default function App() {
             p1Name={result.p1Name}
             p2Name={result.p2Name}
             stats={result.stats}
-            onPlayAgain={handleBackToMenu}
-            onHome={() => { mpActions.reset(); setScreen('ranked'); }}
+            onRematch={() => mpActions.rematch()}
+            onClose={handleBackToMenu}
+            rematchWaiting={mp.rematchWaiting}
             firestoreError={firestoreError}
           />
         )}
