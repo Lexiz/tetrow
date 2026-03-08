@@ -65,7 +65,7 @@ export default function LoginScreen({ onSignIn, isMobile }: Props) {
         }}>CHESTET</div>
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-          color: C.dim, marginTop: 8,
+          color: C.text, opacity: 0.7, marginTop: 8,
         }}>v{APP_VERSION}</div>
       </div>
 
@@ -87,7 +87,7 @@ export default function LoginScreen({ onSignIn, isMobile }: Props) {
 
       <div style={{
         zIndex: 1, fontFamily: 'monospace', fontSize: 8,
-        letterSpacing: 3, color: C.dim, textAlign: 'center',
+        letterSpacing: 3, color: C.text, opacity: 0.7, textAlign: 'center',
       }}>
         COMPETITIVE TETRIS · RANKED MATCHES · LEADERBOARDS
       </div>
