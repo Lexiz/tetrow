@@ -7,6 +7,7 @@ import { getShape } from '../../../shared/game/pieces';
 import BoardComponent from '../common/Board';
 import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
+import GamePauseOverlay from '../common/GamePauseOverlay';
 import MiniPiece from '../common/MiniPiece';
 import SpeedBar from '../common/SpeedBar';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -19,6 +20,7 @@ const BAR_HEIGHT = 64;
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
   aiDifficulty?: AiDifficulty;
+  onQuit?: () => void;
 }
 
 function getVisibleHeight(): number {
@@ -52,12 +54,13 @@ function useMobileCellSize(): number {
   return size;
 }
 
-export default function MobileGameScreen({ onGameEnd, aiDifficulty }: Props) {
+export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
   const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next, handleAction } = useGameEngine(
     aiDifficulty ? { aiPlayer: 2, aiDifficulty } : undefined,
   );
   const cellSize = useMobileCellSize();
   const boardRef = useRef<HTMLDivElement>(null);
+  const [showPause, setShowPause] = useState(false);
   useTouchInput(state.active, handleAction, boardRef);
   const ended = state.phase === 'ended';
   const p1Active = state.active === 1 && !ended;
@@ -101,6 +104,17 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty }: Props) {
               cellSize={cellSize}
             />
           )}
+          {/* Pause overlay */}
+          {showPause && !ended && onQuit && (
+            <GamePauseOverlay
+              playerName={state.active === 1 ? 'PLAYER 1' : 'PLAYER 2'}
+              playerNum={state.active}
+              score={state.scores[state.active - 1]}
+              speedBand={CONFIG.SPEED_BANDS[state.active === 1 ? p1BandIdx : p2BandIdx]?.label ?? 'S0'}
+              onBack={() => setShowPause(false)}
+              onQuit={onQuit}
+            />
+          )}
         </div>
       </div>
 
@@ -120,6 +134,7 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty }: Props) {
           bandIndex={p1BandIdx}
           nextPiece={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT}
           active={p1Active}
+          onClick={onQuit ? () => setShowPause(true) : undefined}
         />
 
         {/* Divider */}
@@ -136,6 +151,7 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty }: Props) {
           bandIndex={p2BandIdx}
           nextPiece={nextCells(state.p2Next)}
           active={p2Active}
+          onClick={onQuit ? () => setShowPause(true) : undefined}
         />
       </div>
 
@@ -179,13 +195,14 @@ interface PlayerHalfProps {
   bandIndex: number;
   nextPiece: [number, number][];
   active: boolean;
+  onClick?: () => void;
 }
 
-function PlayerHalf({ player, score, bandIndex, nextPiece, active }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, nextPiece, active, onClick }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       flex: 1,
       display: 'flex',
       alignItems: 'center',
@@ -194,6 +211,7 @@ function PlayerHalf({ player, score, bandIndex, nextPiece, active }: PlayerHalfP
       background: active ? `${col}0c` : 'transparent',
       boxShadow: active ? `inset 0 0 16px ${col}15` : 'none',
       transition: 'all 0.3s',
+      cursor: onClick ? 'pointer' : 'default',
     }}>
       {/* Left: dot + score */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
