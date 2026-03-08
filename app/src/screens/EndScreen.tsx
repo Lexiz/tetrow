@@ -10,13 +10,15 @@ interface Props {
   p2Score: number;
   p1ToppedOut: boolean;
   p2ToppedOut: boolean;
+  p1Name?: string;
+  p2Name?: string;
   stats: [PlayerStats, PlayerStats];
   onPlayAgain: () => void;
   onHome: () => void;
   firestoreError?: string | null;
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, stats, onPlayAgain, onHome, firestoreError }: Props) {
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, onPlayAgain, onHome, firestoreError }: Props) {
   const penalty1 = p1ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const penalty2 = p2ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const finalP1 = p1Score;
@@ -24,9 +26,13 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
   const winner: 1 | 2 | null = finalP1 > finalP2 ? 1 : finalP2 > finalP1 ? 2 : null;
   const winCol = winner === 1 ? C.p1 : winner === 2 ? C.p2 : C.text;
 
+  const name1 = p1Name || 'Player 1';
+  const name2 = p2Name || 'Player 2';
+  const winnerName = winner === 1 ? name1 : winner === 2 ? name2 : null;
+
   const players = [
-    { n: 1 as const, final: finalP1, penalty: penalty1, topped: p1ToppedOut, win: winner === 1, col: C.p1, brt: C.p1b, stat: stats[0] },
-    { n: 2 as const, final: finalP2, penalty: penalty2, topped: p2ToppedOut, win: winner === 2, col: C.p2, brt: C.p2b, stat: stats[1] },
+    { n: 1 as const, name: name1, final: finalP1, penalty: penalty1, topped: p1ToppedOut, win: winner === 1, col: C.p1, brt: C.p1b, stat: stats[0] },
+    { n: 2 as const, name: name2, final: finalP2, penalty: penalty2, topped: p2ToppedOut, win: winner === 2, col: C.p2, brt: C.p2b, stat: stats[1] },
   ];
 
   const dimText: React.CSSProperties = { fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5 };
@@ -57,12 +63,12 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
         letterSpacing: 3, color: winCol, zIndex: 1,
         textShadow: `0 0 20px ${winCol}, 0 0 40px ${winCol}88, 0 0 70px ${winCol}33`,
       }}>
-        {winner ? `PLAYER ${winner} WINS` : 'DRAW'}
+        {winnerName ? `${winnerName.toUpperCase()} WINS` : 'DRAW'}
       </div>
 
       {/* Score cards */}
       <div style={{ display: 'flex', gap: 24, zIndex: 1 }}>
-        {players.map(({ n, final, penalty, topped, win, col, brt, stat }) => {
+        {players.map(({ n, name, final, penalty, topped, win, col, brt, stat }) => {
           const opCol = n === 1 ? C.p2 : C.p1;
           return (
             <div key={n} style={{
@@ -79,7 +85,8 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
               <div style={{
                 fontFamily: 'monospace', fontSize: 10, letterSpacing: 3, color: col,
                 textShadow: win ? `0 0 12px ${col}` : 'none',
-              }}>PLAYER {n}</div>
+                maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{name.toUpperCase()}</div>
 
               {/* Final score */}
               <div style={{

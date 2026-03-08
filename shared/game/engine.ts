@@ -94,7 +94,8 @@ function handleTopOut(
   // First top-out → give opponent their equalizing turn
   if (state.phase === 'playing') {
     const equalizer: Owner = toppedPlayer === 1 ? 2 : 1;
-    const equalizerType = equalizer === 1 ? state.p1Next : state.p2Next;
+    // Use the topped player's next piece (the equalizer player's piece is the one that failed to spawn)
+    const equalizerType = toppedPlayer === 1 ? state.p1Next : state.p2Next;
     const equalizerPiece = spawnPiece(equalizerType);
 
     if (!isValid(equalizerPiece, board)) {
@@ -164,7 +165,9 @@ function doLock(state: GameState): GameState {
   const nextPiece = spawnPiece(nextType);
 
   if (!isValid(nextPiece, board)) {
-    return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, nextActive, p2HasPlaced);
+    // The player who just placed (owner) caused the top-out — they get the penalty.
+    // The other player (nextActive) gets one equalizer turn.
+    return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
   }
 
   // Draw a replacement "next" piece for the player who just locked
