@@ -38,14 +38,21 @@ export function aiFindPlacement(
   // Add randomness based on difficulty
   switch (difficulty) {
     case 'easy': {
-      // Pick from top 60% of placements randomly
-      const poolSize = Math.max(1, Math.ceil(scored.length * 0.6));
-      return scored[Math.floor(Math.random() * poolSize)]!.placement;
+      // Cooperative: pick from top 3 with weighted probability
+      const top = scored.slice(0, Math.min(3, scored.length));
+      const weights = [0.6, 0.25, 0.15];
+      const r = Math.random();
+      let cum = 0;
+      for (let i = 0; i < top.length; i++) {
+        cum += weights[i] ?? 0;
+        if (r < cum) return top[i]!.placement;
+      }
+      return top[0]!.placement;
     }
     case 'medium': {
-      // Pick from top 3 with weighted probability
+      // Mostly best, sometimes second/third
       const top = scored.slice(0, Math.min(3, scored.length));
-      const weights = [0.6, 0.3, 0.1];
+      const weights = [0.7, 0.2, 0.1];
       const r = Math.random();
       let cum = 0;
       for (let i = 0; i < top.length; i++) {
@@ -86,6 +93,25 @@ function getAllPlacements(board: SettledBoard, type: TetrominoType): Placement[]
   return results;
 }
 
+/** Count rows that are nearly complete (>=7 filled) and contain opponent cells. */
+function countOpponentNearCompleteRows(board: SettledBoard, owner: Owner): number {
+  const opponent: Owner = owner === 1 ? 2 : 1;
+  let count = 0;
+  for (let r = 0; r < CONFIG.ROWS; r++) {
+    let filled = 0;
+    let opponentCells = 0;
+    for (let c = 0; c < CONFIG.COLS; c++) {
+      if (board[r]![c] !== null) {
+        filled++;
+        if (board[r]![c] === opponent) opponentCells++;
+      }
+    }
+    // Row is nearly complete and opponent benefits from its completion
+    if (filled >= 7 && opponentCells >= 2) count++;
+  }
+  return count;
+}
+
 function evaluatePlacement(
   board: SettledBoard,
   placement: Placement,
@@ -105,21 +131,30 @@ function evaluatePlacement(
   const bumpiness = getBumpiness(heights);
   const maxHeight = Math.max(...heights);
 
-  // Weights vary by difficulty
+  // Obstruction metric: how many opponent near-complete rows remain after placement
+  // (higher = opponent still has scoring opportunities; lower = AI blocked them)
+  const nearCompleteBefore = countOpponentNearCompleteRows(board, owner);
+  const nearCompleteAfter = countOpponentNearCompleteRows(cleared, owner);
+  const disruptionDelta = nearCompleteBefore - nearCompleteAfter; // positive = disrupted opponent
+
   let score = 0;
 
   switch (difficulty) {
     case 'easy':
-      // Only cares about lines cleared, loosely avoids extreme height
-      score += linesCleared * 100;
-      score -= maxHeight * 2;
-      score -= holes * 5;
+      // Cooperative: build clean, score own lines, avoid disrupting opponent
+      score += linesCleared * 200;
+      score -= opponentCellsCleared * 10;   // avoid clearing opponent's rows
+      score -= aggregateHeight * 2;
+      score -= holes * 40;
+      score -= bumpiness * 8;
+      score -= maxHeight * 3;
       break;
 
     case 'medium':
-      // Balanced heuristics
-      score += linesCleared * 200;
-      score += opponentCellsCleared * 15;
+      // Mostly cooperative but occasionally obstruct opponent scoring opportunities
+      score += linesCleared * 250;
+      score += opponentCellsCleared * 5;
+      score += disruptionDelta * 40;         // moderate reward for blocking opponent
       score -= aggregateHeight * 3;
       score -= holes * 50;
       score -= bumpiness * 10;
@@ -127,15 +162,15 @@ function evaluatePlacement(
       break;
 
     case 'hard':
-      // Strong evaluation with opponent cell awareness
+      // Competitive: clear lines aggressively AND obstruct opponent
       score += linesCleared * 300;
-      score += (linesCleared >= 4 ? 500 : 0); // Tetris bonus
+      score += (linesCleared >= 4 ? 500 : 0);
       score += opponentCellsCleared * 25;
+      score += disruptionDelta * 80;         // strong reward for blocking opponent
       score -= aggregateHeight * 4;
       score -= holes * 80;
       score -= bumpiness * 15;
       score -= maxHeight * 8;
-      // Penalize creating overhangs
       score -= countOverhangs(cleared) * 30;
       break;
   }
