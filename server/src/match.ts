@@ -243,13 +243,45 @@ export class Match extends DurableObject {
       this.state = gameReducer(this.state, { type: 'GRAVITY' });
 
       if (this.state.isGrounded) {
-        this.ctx.storage.put('alarmType', 'gravity');
+        // Piece can't fall further — schedule lock (not more gravity)
+        this.ctx.storage.put('alarmType', 'lock');
         this.ctx.storage.setAlarm(Date.now() + 500);
         this.broadcastState();
         return;
       }
 
       this.broadcastState();
+      this.scheduleGravity();
+    }
+
+    // Lock alarm — piece was grounded, now lock it in place
+    if (alarmType === 'lock') {
+      if (!this.state || this.state.phase === 'ended') return;
+
+      // If piece was moved off the ground (move/rotate), resume gravity instead
+      if (!this.state.isGrounded) {
+        this.scheduleGravity();
+        return;
+      }
+
+      const prevActive = this.state.active;
+      this.state = gameReducer(this.state, { type: 'LOCK' });
+      this.broadcastState();
+
+      if (this.state.phase === 'ended') {
+        this.matchPhase = 'ended';
+        for (const [, conn] of this.players) {
+          this.send(conn.ws, {
+            type: 'GAME_END',
+            winner: this.state.winner,
+            scores: this.state.scores,
+            stats: this.state.stats,
+          });
+        }
+        return;
+      }
+
+      // Turn changed after lock, schedule gravity for next player
       this.scheduleGravity();
     }
   }
@@ -303,6 +335,14 @@ export class Match extends DurableObject {
       }
 
       if (this.state.active !== prevActive || action.type === 'HARD_DROP') {
+        // Turn changed (hard drop locked the piece), schedule gravity for next player
+        this.scheduleGravity();
+      } else if (this.state.isGrounded) {
+        // Piece is grounded after move/rotate/soft_drop — schedule lock
+        this.ctx.storage.put('alarmType', 'lock');
+        this.ctx.storage.setAlarm(Date.now() + 500);
+      } else {
+        // Piece moved but not grounded — reschedule gravity
         this.scheduleGravity();
       }
     }
