@@ -75,7 +75,7 @@ export interface MatchRecord {
 }
 
 /** Calculate ELO change */
-function calcEloChange(myElo: number, oppElo: number, result: number, gamesPlayed: number): number {
+export function calcEloChange(myElo: number, oppElo: number, result: number, gamesPlayed: number): number {
   const K = gamesPlayed < 30 ? 32 : 16;
   const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400));
   return Math.round(K * (result - expected));
