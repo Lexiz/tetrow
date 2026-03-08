@@ -115,6 +115,7 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, oppon
               key={`clear-${game.lastClear.id}`}
               rows={game.clearedRows}
               player={game.lastClear.player}
+              cellSize={cellSize}
             />
           )}
           {/* Equalizer warning */}
