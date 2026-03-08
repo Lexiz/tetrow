@@ -17,6 +17,7 @@ import RankedScreen from './screens/RankedScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
+import { getOrCreateProfile, saveMatchResult, type UserProfile } from './firestore';
 
 interface MatchResult {
   p1Score: number;
@@ -31,6 +32,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('login');
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [wasRankedGame, setWasRankedGame] = useState(false);
   const isMobile = useIsMobile();
   const { user, loading, error: authError, signIn, signOut } = useAuth();
   const [mp, mpActions] = useMultiplayer();
@@ -38,10 +41,21 @@ export default function App() {
   // Redirect to login if not authenticated
   const currentScreen = (!user && screen !== 'login') ? 'login' : screen;
 
-  // After auth, go to menu
+  // After auth, go to menu and load profile
   if (user && currentScreen === 'login') {
     if (screen === 'login') setScreen('menu');
   }
+
+  // Load/create Firestore profile when user logs in
+  useEffect(() => {
+    if (user) {
+      getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL)
+        .then(setUserProfile)
+        .catch(() => {});
+    } else {
+      setUserProfile(null);
+    }
+  }, [user?.uid]);
 
   // When multiplayer match starts playing, switch to ranked game screen
   useEffect(() => {
@@ -50,7 +64,7 @@ export default function App() {
     }
   }, [mp.phase, currentScreen]);
 
-  // When multiplayer match ends via server notification
+  // When multiplayer match ends via server notification — save to Firestore
   useEffect(() => {
     if (mp.phase === 'ended' && mp.endResult && currentScreen === 'ranked-game') {
       setResult({
@@ -59,12 +73,37 @@ export default function App() {
         toppedOut: null,
         stats: mp.endResult.stats,
       });
+      setWasRankedGame(true);
       setScreen('end');
     }
   }, [mp.phase, mp.endResult, currentScreen]);
 
   function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) {
     setResult({ p1Score, p2Score, toppedOut, stats });
+
+    // Save ranked match results to Firestore
+    if (wasRankedGame && user && mp.myPlayer && mp.opponentName) {
+      const winner: Owner | null = p1Score > p2Score ? 1 : p2Score > p1Score ? 2 : null;
+      // For now, use user's uid for their player slot and a placeholder for opponent
+      // In a real setup, the server would provide both player IDs
+      const myId = user.uid;
+      const myName = user.displayName || 'Player';
+      const oppName = mp.opponentName;
+      // Use a deterministic opponent ID based on match info (server should provide this)
+      const oppId = `opponent_${Date.now()}`;
+
+      if (mp.myPlayer === 1) {
+        saveMatchResult(myId, myName, oppId, oppName, p1Score, p2Score, winner)
+          .then(() => getOrCreateProfile(myId, myName, user.photoURL).then(setUserProfile))
+          .catch(() => {});
+      } else {
+        saveMatchResult(oppId, oppName, myId, myName, p1Score, p2Score, winner)
+          .then(() => getOrCreateProfile(myId, myName, user.photoURL).then(setUserProfile))
+          .catch(() => {});
+      }
+      setWasRankedGame(false);
+    }
+
     setScreen('end');
   }
 
@@ -87,7 +126,7 @@ export default function App() {
 
   function handleFindMatch() {
     if (!user) return;
-    mpActions.joinQueue(user.uid, user.displayName || 'Player', 1200);
+    mpActions.joinQueue(user.uid, user.displayName || 'Player', userProfile?.elo ?? 1200);
   }
 
   function handleCancelSearch() {
@@ -97,6 +136,7 @@ export default function App() {
   // Determine which game screen to show
   const isWarmUp = currentScreen === 'warmup';
   const gameAiDifficulty = isWarmUp ? (aiDifficulty ?? 'medium') : undefined;
+  const elo = userProfile?.elo ?? 1200;
 
   // Loading state
   if (loading) {
@@ -121,7 +161,7 @@ export default function App() {
         {currentScreen === 'menu' && user && (
           <MainMenu
             user={user}
-            elo={1200}
+            elo={elo}
             onWarmUp={() => setScreen('warmup-select')}
             onRanked={() => setScreen('ranked')}
             onSignOut={handleSignOut}
@@ -138,7 +178,7 @@ export default function App() {
         {currentScreen === 'ranked' && user && (
           <RankedScreen
             user={user}
-            elo={1200}
+            elo={elo}
             matchPhase={mp.phase}
             queueSize={mp.queueSize}
             opponentName={mp.opponentName}

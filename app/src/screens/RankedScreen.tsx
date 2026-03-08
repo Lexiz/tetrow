@@ -3,6 +3,7 @@ import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { User } from 'firebase/auth';
 import type { MatchPhase } from '../hooks/useMultiplayer';
+import { getLeaderboard, getMatchHistory, type UserProfile, type MatchRecord } from '../firestore';
 
 const SERVER_URL = 'https://tetchess-server.alex-lisitzky.workers.dev';
 
@@ -202,56 +203,138 @@ export default function RankedScreen({
         width: isMobile ? '100%' : 380,
         maxWidth: 420,
         minHeight: 200,
+        maxHeight: 260,
+        overflowY: 'auto',
         background: C.panel,
         border: `1px solid ${C.border}`,
         borderRadius: 6,
         padding: 16,
         boxSizing: 'border-box',
       }}>
-        {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab />}
+        {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab userId={user.uid} />}
       </div>
     </div>
   );
 }
 
 function LeaderboardTab() {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', minHeight: 160, gap: 8,
-    }}>
+  const [entries, setEntries] = useState<(UserProfile & { id: string })[] | null>(null);
+
+  useEffect(() => {
+    getLeaderboard(10).then(setEntries).catch(() => setEntries([]));
+  }, []);
+
+  if (entries === null) {
+    return <div style={{ fontFamily: 'monospace', fontSize: 9, color: C.text, textAlign: 'center', padding: 20 }}>Loading...</div>;
+  }
+
+  if (entries.length === 0) {
+    return (
       <div style={{
-        fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-        color: C.text, textAlign: 'center',
-      }}>LEADERBOARD</div>
-      <div style={{
-        fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5,
-        textAlign: 'center', lineHeight: 1.6,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: 120, gap: 8,
       }}>
-        No ranked matches yet.<br />
-        Play matches to appear here.
+        <div style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', lineHeight: 1.6 }}>
+          No ranked matches yet.<br />Play matches to appear here.
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {entries.map((entry, i) => {
+        const rankCol = getRankColor(entry.elo);
+        return (
+          <div key={entry.id} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '6px 8px',
+            background: i === 0 ? `${C.p2}0c` : 'transparent',
+            borderRadius: 4,
+          }}>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 11, fontWeight: 900,
+              color: i < 3 ? C.p2 : C.text, width: 20, textAlign: 'right',
+            }}>#{i + 1}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 10, color: C.white,
+              flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{entry.displayName}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 10, fontWeight: 700, color: rankCol,
+            }}>{entry.elo}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.5,
+            }}>{entry.wins}W {entry.losses}L</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function HistoryTab() {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', minHeight: 160, gap: 8,
-    }}>
+function HistoryTab({ userId }: { userId: string }) {
+  const [matches, setMatches] = useState<MatchRecord[] | null>(null);
+
+  useEffect(() => {
+    getMatchHistory(userId, 10).then(setMatches).catch(() => setMatches([]));
+  }, [userId]);
+
+  if (matches === null) {
+    return <div style={{ fontFamily: 'monospace', fontSize: 9, color: C.text, textAlign: 'center', padding: 20 }}>Loading...</div>;
+  }
+
+  if (matches.length === 0) {
+    return (
       <div style={{
-        fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-        color: C.text, textAlign: 'center',
-      }}>MATCH HISTORY</div>
-      <div style={{
-        fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5,
-        textAlign: 'center', lineHeight: 1.6,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: 120, gap: 8,
       }}>
-        No matches played yet.<br />
-        Find a match to get started.
+        <div style={{ fontFamily: 'monospace', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', lineHeight: 1.6 }}>
+          No matches played yet.<br />Find a match to get started.
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {matches.map((m, i) => {
+        const isP1 = m.p1Id === userId;
+        const myScore = isP1 ? m.p1Score : m.p2Score;
+        const oppScore = isP1 ? m.p2Score : m.p1Score;
+        const oppName = isP1 ? m.p2Name : m.p1Name;
+        const eloChange = isP1 ? m.p1EloChange : m.p2EloChange;
+        const won = (isP1 && m.winner === 1) || (!isP1 && m.winner === 2);
+        const lost = (isP1 && m.winner === 2) || (!isP1 && m.winner === 1);
+        const resultText = won ? 'WIN' : lost ? 'LOSS' : 'DRAW';
+        const resultColor = won ? '#22cc44' : lost ? '#ff4466' : C.text;
+
+        return (
+          <div key={m.id ?? i} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '6px 8px',
+            borderRadius: 4,
+            background: won ? '#22cc4408' : lost ? '#ff446608' : 'transparent',
+          }}>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
+              color: resultColor, width: 32,
+            }}>{resultText}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 10, color: C.white,
+              flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>vs {oppName}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
+            }}>{myScore}-{oppScore}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
+              color: eloChange >= 0 ? '#22cc44' : '#ff4466',
+            }}>{eloChange >= 0 ? '+' : ''}{eloChange}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
