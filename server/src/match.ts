@@ -308,9 +308,8 @@ export class Match extends DurableObject {
         return;
       }
 
-      // Delay gravity: 1.5s for line clears (animation), 2s for equalizer (warning)
-      const delay = this.state.phase === 'equalizer' ? 2000
-        : this.state.clearedRows.length > 0 ? 1500 : 0;
+      // Delay gravity: 2s for equalizer warning, otherwise immediate
+      const delay = this.state.phase === 'equalizer' ? 2000 : 0;
       this.scheduleGravity(delay);
     }
   }
@@ -394,9 +393,8 @@ export class Match extends DurableObject {
 
       if (this.state.active !== prevActive || action.type === 'HARD_DROP') {
         // Turn changed (hard drop locked the piece), schedule gravity for next player
-        // Delay for line clear animation or equalizer warning
-        const delay = this.state.phase === 'equalizer' ? 2000
-          : this.state.clearedRows.length > 0 ? 1500 : 0;
+        // Delay for equalizer warning only
+        const delay = this.state.phase === 'equalizer' ? 2000 : 0;
         this.scheduleGravity(delay);
       } else if (this.state.isGrounded) {
         // Piece is grounded after move/rotate/soft_drop — schedule lock

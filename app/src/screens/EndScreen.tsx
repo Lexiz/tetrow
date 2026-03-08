@@ -42,13 +42,16 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
   const dimText: React.CSSProperties = { fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5 };
   const valText: React.CSSProperties = { fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: C.text };
 
+  const cardsTotalW = 170 * 2 + 16; // two cards + gap
+
   return (
     <div style={{
-      width: W, height: H,
+      width: W, maxWidth: '100vw', height: H, maxHeight: '100dvh',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       background: C.bg, gap: 18,
       position: 'relative', overflow: 'hidden',
+      boxSizing: 'border-box', padding: '16px 12px',
     }}>
       {/* Winner glow */}
       <div style={{
@@ -66,7 +69,7 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
         fontFamily: "'Courier New', monospace", fontSize: 32, fontWeight: 900,
         letterSpacing: 3, color: winCol, zIndex: 1,
         textShadow: `0 0 20px ${winCol}, 0 0 40px ${winCol}88, 0 0 70px ${winCol}33`,
-        maxWidth: W - 40, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        maxWidth: cardsTotalW, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {forfeit
           ? `${(forfeit === 1 ? name1 : name2).toUpperCase()} QUIT`
