@@ -254,40 +254,6 @@ export default function RankedScreen({
             {rankLabel}
           </div>
 
-          {/* Rank info popup */}
-          {showRankInfo && (
-            <div
-              onClick={() => setShowRankInfo(false)}
-              style={{
-                position: 'absolute', top: '100%', left: '50%',
-                transform: 'translateX(-50%)',
-                marginTop: 8, zIndex: 10,
-                background: C.panel, border: `1px solid ${C.border}`,
-                borderRadius: 6, padding: '10px 14px',
-                minWidth: 160, boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
-              }}
-            >
-              {RANK_TIERS.map((tier) => {
-                const isCurrentTier = rankLabel === tier.label;
-                return (
-                  <div key={tier.label} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '4px 0',
-                    opacity: isCurrentTier ? 1 : 0.6,
-                  }}>
-                    <span style={{ fontSize: 12, width: 18, textAlign: 'center' }}>{tier.icon}</span>
-                    <span style={{
-                      fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
-                      color: tier.color, letterSpacing: 2, flex: 1,
-                    }}>{tier.label}</span>
-                    <span style={{
-                      fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.5,
-                    }}>{tier.range}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* Divider */}
@@ -399,6 +365,53 @@ export default function RankedScreen({
       }}>
         {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab userId={user.uid} />}
       </div>
+
+      {/* Rank info modal */}
+      {showRankInfo && (
+        <div
+          onClick={() => setShowRankInfo(false)}
+          style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(5,5,8,0.8)',
+            zIndex: 50,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: C.panel, border: `1.5px solid ${C.border}`,
+              borderRadius: 8, padding: '20px 24px',
+              minWidth: 220, boxShadow: '0 4px 30px rgba(0,0,0,0.7)',
+            }}
+          >
+            <div style={{
+              fontFamily: 'monospace', fontSize: 10, letterSpacing: 4,
+              color: C.white, textAlign: 'center', marginBottom: 14,
+            }}>RANK TIERS</div>
+            {RANK_TIERS.map((tier) => {
+              const isCurrentTier = rankLabel === tier.label;
+              return (
+                <div key={tier.label} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '6px 4px',
+                  background: isCurrentTier ? `${tier.color}15` : 'transparent',
+                  borderRadius: 4,
+                }}>
+                  <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{tier.icon}</span>
+                  <span style={{
+                    fontFamily: 'monospace', fontSize: 12, fontWeight: 700,
+                    color: tier.color, letterSpacing: 2, flex: 1,
+                  }}>{tier.label}</span>
+                  <span style={{
+                    fontFamily: 'monospace', fontSize: 11, color: C.text, opacity: 0.6,
+                  }}>{tier.range}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

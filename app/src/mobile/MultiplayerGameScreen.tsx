@@ -92,17 +92,6 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
       background: '#030306',
       overflow: 'hidden',
     }}>
-      {/* Turn indicator at top */}
-      <div style={{
-        padding: '6px 0',
-        fontFamily: 'monospace', fontSize: 9, letterSpacing: 4,
-        color: game.isMyTurn ? (myPlayer === 1 ? C.p1 : C.p2) : C.text,
-        textShadow: game.isMyTurn ? `0 0 10px ${myPlayer === 1 ? C.p1 : C.p2}` : 'none',
-        textAlign: 'center',
-      }}>
-        {game.ended ? 'MATCH OVER' : game.isMyTurn ? 'YOUR TURN' : `${opponentName}'S TURN`}
-      </div>
-
       {/* Board area */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div ref={boardRef} style={{ position: 'relative', touchAction: 'none' }}>
