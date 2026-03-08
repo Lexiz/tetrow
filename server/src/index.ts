@@ -25,6 +25,14 @@ export default {
       return json({ status: 'ok' });
     }
 
+    // Lobby count: /api/lobby
+    if (url.pathname === '/api/lobby') {
+      const id = env.MATCHMAKER.idFromName('global');
+      const stub = env.MATCHMAKER.get(id);
+      const res = await stub.fetch(new Request(new URL('/lobby', url.origin)));
+      return addCors(res);
+    }
+
     // Matchmaking WebSocket: /api/queue
     if (url.pathname === '/api/queue') {
       // Route to the singleton Matchmaker Durable Object

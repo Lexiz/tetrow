@@ -21,6 +21,14 @@ export class Matchmaker extends DurableObject<Env> {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+
+    // HTTP endpoint: return lobby count
+    if (url.pathname === '/lobby') {
+      return new Response(JSON.stringify({ count: this.queue.length }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     if (url.pathname !== '/ws') {
       return new Response('Not found', { status: 404 });
     }
