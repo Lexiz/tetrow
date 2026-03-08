@@ -1,15 +1,15 @@
 // Durable Object: singleton matchmaking queue
-// Pairs players together and creates Match Durable Objects
+// Uses WebSocket attachments to survive hibernation (in-memory state is lost between events)
 
 import { DurableObject } from 'cloudflare:workers';
 import type { ServerMessage } from './protocol';
 
-interface QueuedPlayer {
-  ws: WebSocket;
+interface PlayerAttachment {
   userId: string;
   displayName: string;
   elo: number;
   joinedAt: number;
+  inQueue: boolean; // false once matched
 }
 
 interface Env {
@@ -17,14 +17,29 @@ interface Env {
 }
 
 export class Matchmaker extends DurableObject<Env> {
-  private queue: QueuedPlayer[] = [];
+
+  /** Get all WebSockets that are currently queued */
+  private getQueue(): { ws: WebSocket; att: PlayerAttachment }[] {
+    const all = this.ctx.getWebSockets();
+    const result: { ws: WebSocket; att: PlayerAttachment }[] = [];
+    for (const ws of all) {
+      const att = ws.deserializeAttachment() as PlayerAttachment | null;
+      if (att?.inQueue) {
+        result.push({ ws, att });
+      }
+    }
+    // Sort by join time for FIFO
+    result.sort((a, b) => a.att.joinedAt - b.att.joinedAt);
+    return result;
+  }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
     // HTTP endpoint: return lobby count
     if (url.pathname === '/lobby') {
-      return new Response(JSON.stringify({ count: this.queue.length }), {
+      const count = this.getQueue().length;
+      return new Response(JSON.stringify({ count }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -39,6 +54,7 @@ export class Matchmaker extends DurableObject<Env> {
     }
 
     const { 0: client, 1: server } = new WebSocketPair();
+    // Attach empty state — will be populated on JOIN_QUEUE message
     this.ctx.acceptWebSocket(server);
 
     return new Response(null, { status: 101, webSocket: client });
@@ -51,13 +67,16 @@ export class Matchmaker extends DurableObject<Env> {
       const { userId, displayName, elo } = data;
 
       // Don't allow duplicate queue entries
-      if (this.queue.some(p => p.userId === userId)) {
+      const queue = this.getQueue();
+      if (queue.some(p => p.att.userId === userId)) {
         this.send(ws, { type: 'ERROR', message: 'Already in queue' });
         return;
       }
 
-      const player: QueuedPlayer = { ws, userId, displayName, elo, joinedAt: Date.now() };
-      this.queue.push(player);
+      // Store player info as WebSocket attachment (survives hibernation)
+      const att: PlayerAttachment = { userId, displayName, elo, joinedAt: Date.now(), inQueue: true };
+      ws.serializeAttachment(att);
+
       this.send(ws, { type: 'QUEUED' });
       this.broadcastQueueSize();
 
@@ -66,58 +85,65 @@ export class Matchmaker extends DurableObject<Env> {
     }
 
     if (data.type === 'LEAVE_QUEUE') {
-      this.removeFromQueue(ws);
+      this.markNotQueued(ws);
       this.broadcastQueueSize();
     }
   }
 
   webSocketClose(ws: WebSocket) {
-    this.removeFromQueue(ws);
+    this.markNotQueued(ws);
     this.broadcastQueueSize();
   }
 
   webSocketError(ws: WebSocket) {
-    this.removeFromQueue(ws);
+    this.markNotQueued(ws);
   }
 
-  private removeFromQueue(ws: WebSocket) {
-    this.queue = this.queue.filter(p => p.ws !== ws);
+  private markNotQueued(ws: WebSocket) {
+    const att = ws.deserializeAttachment() as PlayerAttachment | null;
+    if (att) {
+      att.inQueue = false;
+      ws.serializeAttachment(att);
+    }
   }
 
   private broadcastQueueSize() {
-    const msg: ServerMessage = { type: 'QUEUE_SIZE', count: this.queue.length };
-    for (const p of this.queue) {
-      this.send(p.ws, msg);
+    const queue = this.getQueue();
+    const msg: ServerMessage = { type: 'QUEUE_SIZE', count: queue.length };
+    for (const { ws } of queue) {
+      this.send(ws, msg);
     }
   }
 
   private async tryMatch() {
-    if (this.queue.length < 2) return;
+    const queue = this.getQueue();
+    if (queue.length < 2) return;
 
-    // Simple FIFO matching for now (could add ELO-based matching later)
-    const p1 = this.queue.shift()!;
-    const p2 = this.queue.shift()!;
+    const p1 = queue[0]!;
+    const p2 = queue[1]!;
+
+    // Mark both as no longer in queue
+    this.markNotQueued(p1.ws);
+    this.markNotQueued(p2.ws);
 
     // Create a unique match ID
     const matchId = crypto.randomUUID();
-    const matchStub = this.env.MATCH.get(this.env.MATCH.idFromName(matchId));
 
     // Tell both players they've been matched
     this.send(p1.ws, {
       type: 'MATCH_FOUND',
       matchId,
       player: 1,
-      opponentName: p2.displayName,
+      opponentName: p2.att.displayName,
     });
     this.send(p2.ws, {
       type: 'MATCH_FOUND',
       matchId,
       player: 2,
-      opponentName: p1.displayName,
+      opponentName: p1.att.displayName,
     });
 
     // Close matchmaker WebSockets — clients will reconnect to the Match DO
-    // Give clients a moment to receive the MATCH_FOUND message
     setTimeout(() => {
       try { p1.ws.close(1000, 'Matched'); } catch {}
       try { p2.ws.close(1000, 'Matched'); } catch {}
