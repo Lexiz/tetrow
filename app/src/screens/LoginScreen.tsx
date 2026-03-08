@@ -7,10 +7,11 @@ const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
 
 interface Props {
   onSignIn: () => void;
+  authError?: string | null;
   isMobile?: boolean;
 }
 
-export default function LoginScreen({ onSignIn, isMobile }: Props) {
+export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
   return (
     <div style={{
       width: isMobile ? '100vw' : W,
@@ -84,6 +85,16 @@ export default function LoginScreen({ onSignIn, isMobile }: Props) {
         <GoogleIcon />
         SIGN IN WITH GOOGLE
       </button>
+
+      {authError && (
+        <div style={{
+          zIndex: 1, fontFamily: 'monospace', fontSize: 10,
+          color: '#ff6b6b', textAlign: 'center', maxWidth: 300,
+          lineHeight: 1.4,
+        }}>
+          {authError}
+        </div>
+      )}
 
       <div style={{
         zIndex: 1, fontFamily: 'monospace', fontSize: 8,
