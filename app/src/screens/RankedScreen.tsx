@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { User } from 'firebase/auth';
 import type { MatchPhase } from '../hooks/useMultiplayer';
+
+const SERVER_URL = 'https://tetchess-server.alex-lisitzky.workers.dev';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -27,11 +29,29 @@ export default function RankedScreen({
   onFindMatch, onCancelSearch, onBack, isMobile,
 }: Props) {
   const [tab, setTab] = useState<Tab>('leaderboard');
+  const [lobbyCount, setLobbyCount] = useState<number | null>(null);
   const rankCol = getRankColor(elo);
   const rankLabel = getRankLabel(elo);
 
   const isSearching = matchPhase === 'queuing';
   const isConnecting = matchPhase === 'connecting';
+
+  // Poll lobby count every 5 seconds
+  useEffect(() => {
+    let active = true;
+    async function fetchLobby() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/lobby`);
+        if (res.ok && active) {
+          const data = await res.json();
+          setLobbyCount(data.count);
+        }
+      } catch {}
+    }
+    fetchLobby();
+    const interval = setInterval(fetchLobby, 5000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
 
   return (
     <div style={{
@@ -132,6 +152,22 @@ export default function RankedScreen({
           FIND MATCH
         </button>
       )}
+
+      {/* Lobby count */}
+      <div style={{
+        zIndex: 1, display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <div style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: lobbyCount && lobbyCount > 0 ? '#22cc44' : C.text,
+          boxShadow: lobbyCount && lobbyCount > 0 ? '0 0 6px #22cc44' : 'none',
+        }} />
+        <span style={{
+          fontFamily: 'monospace', fontSize: 9, color: C.white,
+        }}>
+          {lobbyCount !== null ? `${lobbyCount} in lobby` : 'connecting...'}
+        </span>
+      </div>
 
       {/* Error display */}
       {error && (
