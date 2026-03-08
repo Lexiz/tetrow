@@ -25,6 +25,8 @@ interface MatchResult {
   p2Score: number;
   toppedOut: Owner | null;
   stats: [PlayerStats, PlayerStats];
+  p1Name?: string;
+  p2Name?: string;
 }
 
 const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
@@ -101,6 +103,8 @@ export default function App() {
         p2Score: er.scores[1],
         toppedOut: er.toppedOut,
         stats: er.stats,
+        p1Name: er.p1Name,
+        p2Name: er.p2Name,
       });
       setScreen('end');
 
@@ -273,6 +277,8 @@ export default function App() {
             p2Score={result.p2Score}
             p1ToppedOut={result.toppedOut === 1}
             p2ToppedOut={result.toppedOut === 2}
+            p1Name={result.p1Name}
+            p2Name={result.p2Name}
             stats={result.stats}
             onPlayAgain={handleBackToMenu}
             onHome={() => { mpActions.reset(); setScreen('ranked'); }}
