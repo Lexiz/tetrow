@@ -1,6 +1,6 @@
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import type { PlayerStats } from '../../../shared/game/engine';
+import { getTopOutPenalty, type PlayerStats } from '../../../shared/game/engine';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -23,8 +23,10 @@ interface Props {
 }
 
 export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, forfeit, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
-  const penalty1 = p1ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
-  const penalty2 = p2ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
+  const rawP1 = stats[0].basePoints + stats[0].bonusPoints;
+  const rawP2 = stats[1].basePoints + stats[1].bonusPoints;
+  const penalty1 = p1ToppedOut ? getTopOutPenalty(rawP1) : 0;
+  const penalty2 = p2ToppedOut ? getTopOutPenalty(rawP2) : 0;
   const finalP1 = p1Score;
   const finalP2 = p2Score;
   const winner: 1 | 2 | null = finalP1 > finalP2 ? 1 : finalP2 > finalP1 ? 2 : null;

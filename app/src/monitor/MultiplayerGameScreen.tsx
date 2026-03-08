@@ -20,7 +20,7 @@ interface Props {
   opponentName: string;
   eloLoss: number;
   sendAction: (action: Action) => void;
-  onGameEnd: (p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) => void;
+  onGameEnd: (p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) => void;
   onQuit: () => void;
 }
 

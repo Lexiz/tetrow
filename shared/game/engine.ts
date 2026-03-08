@@ -32,7 +32,7 @@ export interface GameState {
   scores: [number, number];
 
   phase: 'playing' | 'equalizer' | 'ended';
-  toppedOut: Owner | null; // first player to top out
+  toppedOut: [boolean, boolean]; // per-player top-out flags
   winner: Owner | null;
 
   // Opening visibility rule: hide P1's next piece until P2 completes first placement
@@ -77,9 +77,14 @@ function calcScoreParts(linesCleared: number, opponentCells: number): { base: nu
 
 // ── End-game helpers ─────────────────────────────────────────────────────────
 
+export function getTopOutPenalty(score: number): number {
+  return CONFIG.TOPOUT_PENALTIES[getBandIndex(score)] ?? 0;
+}
+
 function resolveEnd(state: GameState, board: SettledBoard, scores: [number, number]): GameState {
   const s: [number, number] = [scores[0], scores[1]];
-  if (state.toppedOut !== null) s[state.toppedOut - 1] -= CONFIG.TOPOUT_PENALTY;
+  if (state.toppedOut[0]) s[0] -= getTopOutPenalty(scores[0]);
+  if (state.toppedOut[1]) s[1] -= getTopOutPenalty(scores[1]);
   const winner: Owner | null = s[0] > s[1] ? 1 : s[1] > s[0] ? 2 : null;
   return { ...state, board, scores: s, phase: 'ended', winner };
 }
@@ -91,6 +96,9 @@ function handleTopOut(
   toppedPlayer: Owner,
   p2HasPlaced: boolean,
 ): GameState {
+  const topped: [boolean, boolean] = [state.toppedOut[0], state.toppedOut[1]];
+  topped[toppedPlayer - 1] = true;
+
   // First top-out → give opponent their equalizing turn
   if (state.phase === 'playing') {
     const equalizer: Owner = toppedPlayer === 1 ? 2 : 1;
@@ -99,8 +107,9 @@ function handleTopOut(
     const equalizerPiece = spawnPiece(equalizerType);
 
     if (!isValid(equalizerPiece, board)) {
-      // Equalizer can't even spawn — end immediately
-      return resolveEnd({ ...state, toppedOut: toppedPlayer, p2HasPlaced }, board, scores);
+      // Equalizer can't even spawn — both players topped out
+      topped[equalizer - 1] = true;
+      return resolveEnd({ ...state, toppedOut: topped, p2HasPlaced }, board, scores);
     }
 
     return {
@@ -112,13 +121,13 @@ function handleTopOut(
       lockResets: 0,
       scores,
       phase: 'equalizer',
-      toppedOut: toppedPlayer,
+      toppedOut: topped,
       p2HasPlaced,
     };
   }
 
   // Already in equalizer → end now
-  return resolveEnd({ ...state, board }, board, scores);
+  return resolveEnd({ ...state, toppedOut: topped }, board, scores);
 }
 
 // ── Turn transition ───────────────────────────────────────────────────────────
@@ -269,7 +278,7 @@ export function createInitialState(): GameState {
     p2Next: bag[1]!,
     scores: [0, 0],
     phase: 'playing',
-    toppedOut: null,
+    toppedOut: [false, false],
     winner: null,
     p2HasPlaced: false,
     lastClear: null,

@@ -17,7 +17,7 @@ import GamePauseOverlay from '../common/GamePauseOverlay';
 const HIDDEN_NEXT: [number, number][] = [];
 
 interface Props {
-  onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
+  onGameEnd: (p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) => void;
   aiDifficulty?: AiDifficulty;
   onQuit?: () => void;
 }
@@ -53,7 +53,7 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, position: 'relative' }}>
           <div style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.dim }}>
-            CHESTET
+            TETCHES
           </div>
           <div style={{ position: 'relative' }}>
             <BoardComponent board={displayBoard} />

@@ -24,7 +24,7 @@ import { getOrCreateProfile, saveMyMatchResult, calcEloChange, type UserProfile 
 interface MatchResult {
   p1Score: number;
   p2Score: number;
-  toppedOut: Owner | null;
+  toppedOut: [boolean, boolean];
   stats: [PlayerStats, PlayerStats];
   p1Name?: string;
   p2Name?: string;
@@ -37,7 +37,7 @@ const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 
 
 export default function App() {
   const [screen, setScreenRaw] = useState<Screen>('login');
-  const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: null, stats: [emptyStats, emptyStats] });
+  const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: [false, false], stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
@@ -158,7 +158,7 @@ export default function App() {
     }
   }, [mp.phase, mp.endResult, currentScreen]);
 
-  function handleGameEnd(p1Score: number, p2Score: number, toppedOut: Owner | null, stats: [PlayerStats, PlayerStats]) {
+  function handleGameEnd(p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) {
     setResult({ p1Score, p2Score, toppedOut, stats });
     setScreen('end');
   }
@@ -308,8 +308,8 @@ export default function App() {
           <EndScreen
             p1Score={result.p1Score}
             p2Score={result.p2Score}
-            p1ToppedOut={result.toppedOut === 1}
-            p2ToppedOut={result.toppedOut === 2}
+            p1ToppedOut={result.toppedOut[0]}
+            p2ToppedOut={result.toppedOut[1]}
             p1Name={result.p1Name}
             p2Name={result.p2Name}
             stats={result.stats}
@@ -368,7 +368,7 @@ export default function App() {
         {renderScreen(false)}
       </div>
       <div style={{ marginTop: 16, color: C.white, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3 }}>
-        CHESTET · v{APP_VERSION}
+        TETCHES · v{APP_VERSION}
       </div>
     </div>
   );

@@ -63,7 +63,7 @@ export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
           WebkitTextFillColor: 'transparent',
           filter: `drop-shadow(0 0 28px ${C.p1}66) drop-shadow(0 0 56px ${C.p2}33)`,
           lineHeight: 1,
-        }}>CHESTET</div>
+        }}>TETCHES</div>
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
           color: C.text, opacity: 0.7, marginTop: 8,

@@ -41,7 +41,7 @@ interface MultiplayerState {
   gameState: ClientGameState | null;
   endResult: {
     winner: Owner | null;
-    toppedOut: Owner | null;
+    toppedOut: [boolean, boolean];
     forfeit: Owner | null;
     scores: [number, number];
     stats: [PlayerStats, PlayerStats];

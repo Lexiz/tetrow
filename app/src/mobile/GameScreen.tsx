@@ -18,7 +18,7 @@ const HIDDEN_NEXT: [number, number][] = [];
 const BAR_HEIGHT = 64;
 
 interface Props {
-  onGameEnd: (p1Score: number, p2Score: number, toppedOut: 1 | 2 | null, stats: [PlayerStats, PlayerStats]) => void;
+  onGameEnd: (p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) => void;
   aiDifficulty?: AiDifficulty;
   onQuit?: () => void;
 }
