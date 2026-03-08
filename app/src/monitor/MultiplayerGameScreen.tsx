@@ -61,15 +61,6 @@ export default function MultiplayerGameScreen({ gameState, myPlayer, myName, opp
         <Divider activePlayer={game.ended ? 1 : game.active} />
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, position: 'relative' }}>
-          {/* Turn indicator */}
-          <div style={{
-            fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
-            color: game.isMyTurn ? (myPlayer === 1 ? C.p1 : C.p2) : C.text,
-            textShadow: game.isMyTurn ? `0 0 10px ${myPlayer === 1 ? C.p1 : C.p2}` : 'none',
-          }}>
-            {game.ended ? 'MATCH OVER' : game.isMyTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN'}
-          </div>
-
           <div style={{ position: 'relative' }}>
             <BoardComponent board={game.displayBoard} />
             {game.lastClear && (
