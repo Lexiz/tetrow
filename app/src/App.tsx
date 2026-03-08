@@ -19,7 +19,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
 import { useVersionCheck } from './hooks/useVersionCheck';
-import { getOrCreateProfile, saveMyMatchResult, type UserProfile } from './firestore';
+import { getOrCreateProfile, saveMyMatchResult, calcEloChange, type UserProfile } from './firestore';
 
 interface MatchResult {
   p1Score: number;
@@ -28,6 +28,8 @@ interface MatchResult {
   stats: [PlayerStats, PlayerStats];
   p1Name?: string;
   p2Name?: string;
+  p1EloChange?: number;
+  p2EloChange?: number;
 }
 
 const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
@@ -106,6 +108,10 @@ export default function App() {
   useEffect(() => {
     if (mp.phase === 'ended' && mp.endResult && currentScreen === 'ranked-game') {
       const er = mp.endResult;
+      const p1Result = er.winner === 1 ? 1 : er.winner === 2 ? 0 : 0.5;
+      const p2Result = er.winner === 2 ? 1 : er.winner === 1 ? 0 : 0.5;
+      const p1EloChange = calcEloChange(er.p1Elo, er.p2Elo, p1Result, 0);
+      const p2EloChange = calcEloChange(er.p2Elo, er.p1Elo, p2Result, 0);
       setResult({
         p1Score: er.scores[0],
         p2Score: er.scores[1],
@@ -113,6 +119,8 @@ export default function App() {
         stats: er.stats,
         p1Name: er.p1Name,
         p2Name: er.p2Name,
+        p1EloChange,
+        p2EloChange,
       });
       setScreen('end');
 
@@ -289,6 +297,8 @@ export default function App() {
             p1Name={result.p1Name}
             p2Name={result.p2Name}
             stats={result.stats}
+            p1EloChange={result.p1EloChange}
+            p2EloChange={result.p2EloChange}
             onRematch={() => mpActions.rematch()}
             onClose={handleBackToMenu}
             rematchWaiting={mp.rematchWaiting}

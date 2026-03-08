@@ -13,13 +13,15 @@ interface Props {
   p1Name?: string;
   p2Name?: string;
   stats: [PlayerStats, PlayerStats];
+  p1EloChange?: number;
+  p2EloChange?: number;
   onRematch: () => void;
   onClose: () => void;
   rematchWaiting?: boolean;
   firestoreError?: string | null;
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
   const penalty1 = p1ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const penalty2 = p2ToppedOut ? CONFIG.TOPOUT_PENALTY : 0;
   const finalP1 = p1Score;
@@ -32,8 +34,8 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
   const winnerName = winner === 1 ? name1 : winner === 2 ? name2 : null;
 
   const players = [
-    { n: 1 as const, name: name1, final: finalP1, penalty: penalty1, topped: p1ToppedOut, win: winner === 1, col: C.p1, brt: C.p1b, stat: stats[0] },
-    { n: 2 as const, name: name2, final: finalP2, penalty: penalty2, topped: p2ToppedOut, win: winner === 2, col: C.p2, brt: C.p2b, stat: stats[1] },
+    { n: 1 as const, name: name1, final: finalP1, penalty: penalty1, topped: p1ToppedOut, win: winner === 1, col: C.p1, brt: C.p1b, stat: stats[0], eloChange: p1EloChange },
+    { n: 2 as const, name: name2, final: finalP2, penalty: penalty2, topped: p2ToppedOut, win: winner === 2, col: C.p2, brt: C.p2b, stat: stats[1], eloChange: p2EloChange },
   ];
 
   const dimText: React.CSSProperties = { fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5 };
@@ -70,7 +72,7 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
 
       {/* Score cards */}
       <div style={{ display: 'flex', gap: 16, zIndex: 1, maxWidth: W - 40 }}>
-        {players.map(({ n, name, final, penalty, topped, win, col, brt, stat }) => {
+        {players.map(({ n, name, final, penalty, topped, win, col, brt, stat, eloChange }) => {
           const opCol = n === 1 ? C.p2 : C.p1;
           return (
             <div key={n} style={{
@@ -98,6 +100,14 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
                 fontFamily: "'Courier New', monospace", fontSize: 28, fontWeight: 900,
                 color: C.white, textShadow: win ? `0 0 16px ${col}88` : 'none',
               }}>{final.toLocaleString()}</div>
+
+              {eloChange != null && (
+                <div style={{
+                  fontFamily: 'monospace', fontSize: 12, fontWeight: 900,
+                  color: eloChange >= 0 ? '#22cc44' : '#ff4466',
+                  textShadow: eloChange >= 0 ? '0 0 8px #22cc4488' : '0 0 8px #ff446688',
+                }}>{eloChange >= 0 ? '+' : ''}{eloChange} ELO</div>
+              )}
 
               {win && (
                 <div style={{
