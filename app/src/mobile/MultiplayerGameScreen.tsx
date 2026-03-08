@@ -117,6 +117,34 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, oppon
               player={game.lastClear.player}
             />
           )}
+          {/* Equalizer warning */}
+          {game.phase === 'equalizer' && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(5,5,8,0.7)',
+              zIndex: 6,
+              animation: 'fadeOut 2s forwards',
+            }}>
+              <div style={{
+                fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
+                color: '#ff4466', marginBottom: 8,
+                textShadow: '0 0 12px #ff446688',
+              }}>CEILING REACHED</div>
+              <div style={{
+                fontFamily: "'Courier New', monospace", fontSize: 18, fontWeight: 900,
+                letterSpacing: 3, color: C.white,
+                textShadow: '0 0 16px rgba(255,255,255,0.5)',
+              }}>LAST TURN</div>
+              <style>{`
+                @keyframes fadeOut {
+                  0%, 70% { opacity: 1; }
+                  100% { opacity: 0; pointer-events: none; }
+                }
+              `}</style>
+            </div>
+          )}
         </div>
       </div>
 

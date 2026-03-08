@@ -6,4 +6,4 @@
 // PATCH — bug fixes, polish, small tweaks (e.g. viewport fix, style adjustments)
 //
 // Bump this value here; it propagates to all UI automatically.
-export const APP_VERSION = '0.8.8';
+export const APP_VERSION = '0.8.9';
