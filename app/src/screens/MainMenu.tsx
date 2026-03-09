@@ -76,6 +76,10 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
         </button>
 
         {menuOpen && (
+          <>
+          <div onClick={() => setMenuOpen(false)} style={{
+            position: 'fixed', inset: 0, zIndex: -1,
+          }} />
           <div style={{
             position: 'absolute', top: '100%', right: 0, marginTop: 4,
             background: C.panel, border: `1px solid ${C.border}`,
@@ -101,6 +105,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
               letterSpacing: 1, textAlign: 'left',
             }}>SIGN OUT</button>
           </div>
+          </>
         )}
       </div>
 
