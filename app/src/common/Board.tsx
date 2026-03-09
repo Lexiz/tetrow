@@ -14,7 +14,7 @@ export default function BoardComponent({ board, cellSize }: Props) {
     <div style={{
       display: 'inline-grid',
       gridTemplateColumns: `repeat(${CONFIG.COLS}, ${S}px)`,
-      border: '2px solid #222238',
+      border: '2px solid #3a3a58',
       borderRadius: 3,
       background: C.grid,
       boxShadow: `
