@@ -37,7 +37,7 @@ Rules:
 ## Project Structure
 
 ```
-tetchess/
+tetrow/
 ├── shared/              ← game logic, config, types, theme, version (pure TS, no React)
 │   ├── game/
 │   │   ├── ai.ts        ← AI opponent (heuristic placement evaluation)
@@ -77,7 +77,7 @@ tetchess/
 
 ## Deployment
 
-- Live site: https://lexiz.github.io/tetchess/
+- Live site: https://lexiz.github.io/tetrow/
 - Build: `cd app && npm run build`
 - Deploy: `npx gh-pages -d app/dist`
 
