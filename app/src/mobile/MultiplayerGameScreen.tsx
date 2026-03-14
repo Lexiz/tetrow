@@ -12,6 +12,7 @@ import MiniPiece from '../common/MiniPiece';
 import SpeedBar from '../common/SpeedBar';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame';
 import { useTouchInput } from '../hooks/useTouchInput';
+import { useLineClearEvents } from '../hooks/useLineClearEvents';
 
 const BAR_HEIGHT = 64;
 
@@ -54,6 +55,7 @@ function useMobileCellSize(): number {
 
 export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myName, opponentName, eloLoss, sendAction, onGameEnd, onQuit }: Props) {
   const game = useMultiplayerGame(gameState, myPlayer, sendAction);
+  const clearEvents = useLineClearEvents(game?.lastClear ?? null, game?.clearedRows ?? []);
   const cellSize = useMobileCellSize();
   const [showPause, setShowPause] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -104,14 +106,14 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
               player={game.lastClear.player}
             />
           )}
-          {game.lastClear && game.clearedRows.length > 0 && (
+          {clearEvents.map(evt => (
             <LineClearEffect
-              key={`clear-${game.lastClear.id}`}
-              rows={game.clearedRows}
-              player={game.lastClear.player}
+              key={`clear-${evt.id}`}
+              rows={evt.rows}
+              player={evt.player}
               cellSize={cellSize}
             />
-          )}
+          ))}
           {/* Equalizer warning */}
           {game.phase === 'equalizer' && (
             <div style={{

@@ -9,6 +9,7 @@ import Panel from './Panel';
 import Divider from './Divider';
 import { useGameEngine } from '../hooks/useGameEngine';
 import type { AiDifficulty } from '../../../shared/game/ai';
+import { useLineClearEvents } from '../hooks/useLineClearEvents';
 import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
 import GamePauseOverlay from '../common/GamePauseOverlay';
@@ -37,6 +38,7 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
 
   // Use effect-safe notification: call parent from render is fine here since
   // React will handle the state update in the parent on the next cycle
+  const clearEvents = useLineClearEvents(state.lastClear, state.clearedRows);
   const ended = state.phase === 'ended';
 
   return (
@@ -65,13 +67,13 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
                 player={state.lastClear.player}
               />
             )}
-            {state.lastClear && state.clearedRows.length > 0 && (
+            {clearEvents.map(evt => (
               <LineClearEffect
-                key={`clear-${state.lastClear.id}`}
-                rows={state.clearedRows}
-                player={state.lastClear.player}
+                key={`clear-${evt.id}`}
+                rows={evt.rows}
+                player={evt.player}
               />
-            )}
+            ))}
             {/* Equalizer warning */}
             {state.phase === 'equalizer' && (
               <div style={{

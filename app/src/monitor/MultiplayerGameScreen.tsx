@@ -12,6 +12,7 @@ import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
 import GamePauseOverlay from '../common/GamePauseOverlay';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame';
+import { useLineClearEvents } from '../hooks/useLineClearEvents';
 
 interface Props {
   gameState: ClientGameState | null;
@@ -26,6 +27,7 @@ interface Props {
 
 export default function MultiplayerGameScreen({ gameState, myPlayer, myName, opponentName, eloLoss, sendAction, onGameEnd, onQuit }: Props) {
   const game = useMultiplayerGame(gameState, myPlayer, sendAction);
+  const clearEvents = useLineClearEvents(game?.lastClear ?? null, game?.clearedRows ?? []);
   const [showPause, setShowPause] = useState(false);
 
   if (!game) {
@@ -71,13 +73,13 @@ export default function MultiplayerGameScreen({ gameState, myPlayer, myName, opp
                 player={game.lastClear.player}
               />
             )}
-            {game.lastClear && game.clearedRows.length > 0 && (
+            {clearEvents.map(evt => (
               <LineClearEffect
-                key={`clear-${game.lastClear.id}`}
-                rows={game.clearedRows}
-                player={game.lastClear.player}
+                key={`clear-${evt.id}`}
+                rows={evt.rows}
+                player={evt.player}
               />
-            )}
+            ))}
             {/* Equalizer warning */}
             {game.phase === 'equalizer' && (
               <div style={{

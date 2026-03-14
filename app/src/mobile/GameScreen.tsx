@@ -9,10 +9,10 @@ import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
 import GamePauseOverlay from '../common/GamePauseOverlay';
 import MiniPiece from '../common/MiniPiece';
-import SpeedBar from '../common/SpeedBar';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useTouchInput } from '../hooks/useTouchInput';
 import type { AiDifficulty } from '../../../shared/game/ai';
+import { useLineClearEvents } from '../hooks/useLineClearEvents';
 
 const HIDDEN_NEXT: [number, number][] = [];
 const BAR_HEIGHT = 64;
@@ -24,15 +24,15 @@ interface Props {
 }
 
 function getVisibleHeight(): number {
-  // On iOS Safari, window.innerHeight includes area behind toolbars.
-  // visualViewport gives the actual visible area.
   if (window.visualViewport) return window.visualViewport.height;
   return window.innerHeight;
 }
 
 function calcCellSize(): number {
   const availH = getVisibleHeight() - BAR_HEIGHT - 8;
-  const fromW = Math.floor((window.innerWidth - 12) / CONFIG.COLS);
+  // Reserve space for next piece previews on each side (56px each)
+  const sideSpace = 56 * 2;
+  const fromW = Math.floor((window.innerWidth - sideSpace) / CONFIG.COLS);
   const fromH = Math.floor(availH / CONFIG.ROWS);
   return Math.min(fromW, fromH, 36);
 }
@@ -43,7 +43,6 @@ function useMobileCellSize(): number {
   useEffect(() => {
     function handleResize() { setSize(calcCellSize()); }
     window.addEventListener('resize', handleResize);
-    // visualViewport fires its own resize event on iOS when toolbar shows/hides
     window.visualViewport?.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -62,6 +61,7 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
   const boardRef = useRef<HTMLDivElement>(null);
   const [showPause, setShowPause] = useState(false);
   useTouchInput(state.active, handleAction, boardRef);
+  const clearEvents = useLineClearEvents(state.lastClear, state.clearedRows);
   const ended = state.phase === 'ended';
   const p1Active = state.active === 1 && !ended;
   const p2Active = state.active === 2 && !ended;
@@ -79,70 +79,100 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
       background: '#030306',
       overflow: 'hidden',
     }}>
-      {/* Board area — takes remaining space, centered */}
+      {/* Board area with next piece indicators on sides */}
       <div style={{
         flex: 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        width: '100%',
       }}>
-        <div ref={boardRef} style={{ position: 'relative', touchAction: 'none' }}>
-          <BoardComponent board={displayBoard} cellSize={cellSize} />
-          {state.lastClear && (
-            <ScorePopup
-              key={state.lastClear.id}
-              base={state.lastClear.base}
-              bonus={state.lastClear.bonus}
-              player={state.lastClear.player}
-            />
-          )}
-          {state.lastClear && state.clearedRows.length > 0 && (
-            <LineClearEffect
-              key={`clear-${state.lastClear.id}`}
-              rows={state.clearedRows}
-              player={state.lastClear.player}
-              cellSize={cellSize}
-            />
-          )}
-          {/* Equalizer warning */}
-          {state.phase === 'equalizer' && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(5,5,8,0.7)',
-              zIndex: 6,
-              animation: 'fadeOut 2s forwards',
-            }}>
+        {/* P1 Next piece — left side */}
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 5,
+          width: 56,
+        }}>
+          <div style={{
+            fontFamily: 'monospace', fontSize: 7, letterSpacing: 3,
+            color: C.white, textAlign: 'center', width: '100%',
+          }}>NEXT</div>
+          <MiniPiece cells={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT} player={1} />
+        </div>
+
+        {/* Board */}
+        <div style={{ position: 'relative' }}>
+          <div ref={boardRef} style={{ position: 'relative', touchAction: 'none' }}>
+            <BoardComponent board={displayBoard} cellSize={cellSize} />
+            {state.lastClear && (
+              <ScorePopup
+                key={state.lastClear.id}
+                base={state.lastClear.base}
+                bonus={state.lastClear.bonus}
+                player={state.lastClear.player}
+              />
+            )}
+            {clearEvents.map(evt => (
+              <LineClearEffect
+                key={`clear-${evt.id}`}
+                rows={evt.rows}
+                player={evt.player}
+                cellSize={cellSize}
+              />
+            ))}
+            {/* Equalizer warning */}
+            {state.phase === 'equalizer' && (
               <div style={{
-                fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
-                color: '#ff4466', marginBottom: 8,
-                textShadow: '0 0 12px #ff446688',
-              }}>CEILING REACHED</div>
-              <div style={{
-                fontFamily: "'Courier New', monospace", fontSize: 18, fontWeight: 900,
-                letterSpacing: 3, color: C.white,
-                textShadow: '0 0 16px rgba(255,255,255,0.5)',
-              }}>LAST TURN</div>
-              <style>{`
-                @keyframes fadeOut {
-                  0%, 70% { opacity: 1; }
-                  100% { opacity: 0; pointer-events: none; }
-                }
-              `}</style>
-            </div>
-          )}
-          {/* Pause overlay */}
-          {showPause && !ended && onQuit && (
-            <GamePauseOverlay
-              playerName={state.active === 1 ? 'PLAYER 1' : 'PLAYER 2'}
-              playerNum={state.active}
-              score={state.scores[state.active - 1]}
-              speedBand={CONFIG.SPEED_BANDS[state.active === 1 ? p1BandIdx : p2BandIdx]?.label ?? 'S0'}
-              onBack={() => setShowPause(false)}
-              onQuit={onQuit}
-            />
-          )}
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(5,5,8,0.7)',
+                zIndex: 6,
+                animation: 'fadeOut 2s forwards',
+              }}>
+                <div style={{
+                  fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
+                  color: '#ff4466', marginBottom: 8,
+                  textShadow: '0 0 12px #ff446688',
+                }}>CEILING REACHED</div>
+                <div style={{
+                  fontFamily: "'Courier New', monospace", fontSize: 18, fontWeight: 900,
+                  letterSpacing: 3, color: C.white,
+                  textShadow: '0 0 16px rgba(255,255,255,0.5)',
+                }}>LAST TURN</div>
+                <style>{`
+                  @keyframes fadeOut {
+                    0%, 70% { opacity: 1; }
+                    100% { opacity: 0; pointer-events: none; }
+                  }
+                `}</style>
+              </div>
+            )}
+            {/* Pause overlay */}
+            {showPause && !ended && onQuit && (
+              <GamePauseOverlay
+                playerName={state.active === 1 ? 'PLAYER 1' : 'PLAYER 2'}
+                playerNum={state.active}
+                score={state.scores[state.active - 1]}
+                speedBand={CONFIG.SPEED_BANDS[state.active === 1 ? p1BandIdx : p2BandIdx]?.label ?? 'S0'}
+                onBack={() => setShowPause(false)}
+                onQuit={onQuit}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* P2 Next piece — right side */}
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 5,
+          width: 56,
+        }}>
+          <div style={{
+            fontFamily: 'monospace', fontSize: 7, letterSpacing: 3,
+            color: C.white, textAlign: 'center', width: '100%',
+          }}>NEXT</div>
+          <MiniPiece cells={nextCells(state.p2Next)} player={2} />
         </div>
       </div>
 
@@ -151,35 +181,40 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
         width: '100%',
         height: BAR_HEIGHT,
         display: 'flex',
+        alignItems: 'center',
         background: C.panel,
         borderTop: `1px solid ${C.border}`,
         flexShrink: 0,
+        gap: 8,
+        padding: '0 6px',
       }}>
         {/* P1 — left half */}
         <PlayerHalf
           player={1}
           score={state.scores[0]}
           bandIndex={p1BandIdx}
-          nextPiece={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT}
           active={p1Active}
-          onClick={onQuit ? () => setShowPause(true) : undefined}
         />
 
-        {/* Divider */}
-        <div style={{
-          width: 1,
-          background: C.border,
-          alignSelf: 'stretch',
-        }} />
+        {/* Pause button between players */}
+        <button
+          onClick={onQuit && !ended ? () => setShowPause(true) : undefined}
+          style={{
+            background: 'none', border: `1px solid ${C.border}`,
+            borderRadius: 4, padding: '6px 10px', cursor: onQuit ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, opacity: 0.7,
+          }}
+        >
+          <span style={{ fontFamily: 'monospace', fontSize: 14, color: C.white, lineHeight: 1 }}>⏸</span>
+        </button>
 
         {/* P2 — right half */}
         <PlayerHalf
           player={2}
           score={state.scores[1]}
           bandIndex={p2BandIdx}
-          nextPiece={nextCells(state.p2Next)}
           active={p2Active}
-          onClick={onQuit ? () => setShowPause(true) : undefined}
         />
       </div>
 
@@ -221,51 +256,49 @@ interface PlayerHalfProps {
   player: 1 | 2;
   score: number;
   bandIndex: number;
-  nextPiece: [number, number][];
   active: boolean;
-  onClick?: () => void;
 }
 
-function PlayerHalf({ player, score, bandIndex, nextPiece, active, onClick }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, active }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
   return (
-    <div onClick={onClick} style={{
+    <div style={{
       flex: 1,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 10px',
+      justifyContent: 'center',
+      gap: 16,
+      padding: '0 8px',
       background: active ? `${col}0c` : 'transparent',
       boxShadow: active ? `inset 0 0 16px ${col}15` : 'none',
       transition: 'all 0.3s',
-      cursor: onClick ? 'pointer' : 'default',
     }}>
-      {/* Left: dot + score */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{
-          width: 7, height: 7, borderRadius: '50%',
-          background: col,
-          boxShadow: active ? `0 0 8px ${col}` : 'none',
-        }} />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{
-            fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
-            color: col, opacity: active ? 1 : 0.5,
-          }}>P{player}</span>
-          <span style={{
-            fontFamily: "'Courier New', monospace",
-            fontSize: 16, fontWeight: 900, color: C.white,
-            textShadow: active ? `0 0 8px ${col}55` : 'none',
-          }}>{score.toLocaleString()}</span>
-        </div>
+      {/* Score */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span style={{
+          fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+          color: C.white, opacity: 0.6,
+        }}>SCORE</span>
+        <span style={{
+          fontFamily: "'Courier New', monospace",
+          fontSize: 18, fontWeight: 900, color: C.white,
+          textShadow: active ? `0 0 8px ${col}55` : 'none',
+        }}>{score.toLocaleString()}</span>
       </div>
 
-      {/* Center: speed */}
-      <SpeedBar band={bandIndex} player={player} />
-
-      {/* Right: next piece */}
-      <MiniPiece cells={nextPiece} player={player} />
+      {/* Speed */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span style={{
+          fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+          color: C.white, opacity: 0.6,
+        }}>SPEED</span>
+        <span style={{
+          fontFamily: "'Courier New', monospace",
+          fontSize: 16, fontWeight: 900, color: col,
+          textShadow: `0 0 8px ${col}66`,
+        }}>{bandIndex + 1}/7</span>
+      </div>
     </div>
   );
 }
