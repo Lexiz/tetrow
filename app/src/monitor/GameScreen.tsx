@@ -53,7 +53,7 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, position: 'relative' }}>
           <div style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.dim }}>
-            TETCHES
+            TETROW
           </div>
           <div style={{ position: 'relative' }}>
             <BoardComponent board={displayBoard} />

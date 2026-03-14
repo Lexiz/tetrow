@@ -9,6 +9,7 @@ import { getGravityMs } from '../../shared/game/engine';
 import type { ClientGameState, ServerMessage } from './protocol';
 
 const CONFIRM_TIMEOUT_MS = 15_000;
+const REMATCH_INVITE_TIMEOUT_MS = 10_000;
 
 interface PlayerConn {
   ws: WebSocket;
@@ -27,7 +28,7 @@ export class Match extends DurableObject {
   private countdownValue: number = 3;
   private matchId: string = '';
   private gameStartedAt: number = 0;
-  private rematchRequests: Set<Owner> = new Set();
+  private rematchInviter: Owner | null = null;
   private forfeit: Owner | null = null;
 
   async fetch(request: Request): Promise<Response> {
@@ -138,7 +139,7 @@ export class Match extends DurableObject {
     this.matchPhase = 'playing';
     this.state = createInitialState();
     this.gameStartedAt = Date.now();
-    this.rematchRequests.clear();
+    this.rematchInviter = null;
     this.forfeit = null;
     this.broadcastState();
     this.scheduleGravity();
@@ -242,6 +243,18 @@ export class Match extends DurableObject {
       return;
     }
 
+    // Rematch invite timeout
+    if (alarmType === 'rematch-timeout') {
+      if (this.rematchInviter !== null) {
+        const inviter = this.rematchInviter;
+        const invited: Owner = inviter === 1 ? 2 : 1;
+        this.rematchInviter = null;
+        this.sendToPlayer(inviter, { type: 'REMATCH_DECLINED', reason: 'timeout' });
+        this.sendToPlayer(invited, { type: 'REMATCH_CANCELLED' });
+      }
+      return;
+    }
+
     // Countdown ticks
     if (alarmType === 'countdown') {
       if (this.matchPhase !== 'countdown') return;
@@ -327,7 +340,7 @@ export class Match extends DurableObject {
       return;
     }
 
-    // Handle rematch request
+    // Handle rematch request (invite flow)
     if (data.type === 'REMATCH_REQUEST') {
       if (this.matchPhase !== 'ended') return;
       let sender: Owner | null = null;
@@ -336,14 +349,64 @@ export class Match extends DurableObject {
       }
       if (!sender) return;
 
-      this.rematchRequests.add(sender);
-      this.send(ws, { type: 'REMATCH_WAITING' });
+      const other: Owner = sender === 1 ? 2 : 1;
 
-      // Both players want rematch → restart confirmation phase
-      if (this.rematchRequests.size === 2) {
-        this.rematchRequests.clear();
-        this.startConfirmPhase();
+      // Opponent already left
+      if (!this.players.has(other)) {
+        this.send(ws, { type: 'REMATCH_DECLINED', reason: 'left' });
+        return;
       }
+
+      // If opponent already sent an invite, auto-accept (both want rematch)
+      if (this.rematchInviter === other) {
+        this.rematchInviter = null;
+        this.startConfirmPhase();
+        return;
+      }
+
+      // Ignore if there's already a pending invite from this player
+      if (this.rematchInviter !== null) return;
+
+      this.rematchInviter = sender;
+      this.send(ws, { type: 'REMATCH_SENT' });
+      const senderConn = this.players.get(sender)!;
+      this.sendToPlayer(other, {
+        type: 'REMATCH_INVITE',
+        senderName: senderConn.displayName,
+        timeoutMs: REMATCH_INVITE_TIMEOUT_MS,
+      });
+
+      // Set 10s timeout alarm
+      this.ctx.storage.put('alarmType', 'rematch-timeout');
+      this.ctx.storage.setAlarm(Date.now() + REMATCH_INVITE_TIMEOUT_MS);
+      return;
+    }
+
+    // Handle rematch accept
+    if (data.type === 'REMATCH_ACCEPT') {
+      if (this.matchPhase !== 'ended' || this.rematchInviter === null) return;
+      let sender: Owner | null = null;
+      for (const [playerNum, conn] of this.players) {
+        if (conn.ws === ws) { sender = playerNum; break; }
+      }
+      if (!sender || sender === this.rematchInviter) return;
+
+      this.rematchInviter = null;
+      this.startConfirmPhase();
+      return;
+    }
+
+    // Handle rematch reject
+    if (data.type === 'REMATCH_REJECT') {
+      if (this.rematchInviter === null) return;
+      let sender: Owner | null = null;
+      for (const [playerNum, conn] of this.players) {
+        if (conn.ws === ws) { sender = playerNum; break; }
+      }
+      if (!sender || sender === this.rematchInviter) return;
+
+      this.sendToPlayer(this.rematchInviter, { type: 'REMATCH_DECLINED', reason: 'rejected' });
+      this.rematchInviter = null;
       return;
     }
 
@@ -419,6 +482,17 @@ export class Match extends DurableObject {
 
     if (disconnected) {
       const other: Owner = disconnected === 1 ? 2 : 1;
+
+      // Handle active rematch invite
+      if (this.rematchInviter !== null) {
+        if (disconnected === this.rematchInviter) {
+          this.sendToPlayer(other, { type: 'REMATCH_CANCELLED' });
+        } else {
+          this.sendToPlayer(this.rematchInviter, { type: 'REMATCH_DECLINED', reason: 'left' });
+        }
+        this.rematchInviter = null;
+      }
+
       this.sendToPlayer(other, { type: 'OPPONENT_DISCONNECTED' });
     }
   }

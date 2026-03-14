@@ -11,6 +11,8 @@ export type ClientMessage =
   | { type: 'LEAVE_QUEUE' }
   | { type: 'CONFIRM' }
   | { type: 'REMATCH_REQUEST' }
+  | { type: 'REMATCH_ACCEPT' }
+  | { type: 'REMATCH_REJECT' }
   | { type: 'QUIT' }
   | { type: 'ACTION'; action: Action };
 
@@ -43,6 +45,9 @@ export type ServerMessage =
   | { type: 'CONFIRM_TIMEOUT' }
   | { type: 'GAME_STATE'; state: ClientGameState }
   | { type: 'GAME_END'; winner: Owner | null; toppedOut: [boolean, boolean]; forfeit: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats]; matchId: string; durationMs: number; p1Id: string; p1Name: string; p2Id: string; p2Name: string; p1Elo: number; p2Elo: number }
-  | { type: 'REMATCH_WAITING' }
+  | { type: 'REMATCH_SENT' }
+  | { type: 'REMATCH_INVITE'; senderName: string; timeoutMs: number }
+  | { type: 'REMATCH_DECLINED'; reason: 'rejected' | 'timeout' | 'left' }
+  | { type: 'REMATCH_CANCELLED' }
   | { type: 'OPPONENT_DISCONNECTED' }
   | { type: 'ERROR'; message: string };

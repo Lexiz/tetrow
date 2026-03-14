@@ -54,7 +54,9 @@ interface MultiplayerState {
     p1Elo: number;
     p2Elo: number;
   } | null;
-  rematchWaiting: boolean;
+  rematchState: 'idle' | 'sent' | 'declined';
+  rematchInvite: { senderName: string; timeoutMs: number } | null;
+  rematchDeclineReason: 'rejected' | 'timeout' | 'left' | null;
   error: string | null;
   confirmInfo: ConfirmInfo | null;
   countdownInfo: CountdownInfo | null;
@@ -67,6 +69,8 @@ interface MultiplayerActions {
   leaveQueue: () => void;
   confirm: () => void;
   rematch: () => void;
+  acceptRematch: () => void;
+  rejectRematch: () => void;
   quit: () => void;
   sendAction: (action: Action) => void;
   reset: () => void;
@@ -83,7 +87,9 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const [error, setError] = useState<string | null>(null);
   const [confirmInfo, setConfirmInfo] = useState<ConfirmInfo | null>(null);
   const [countdownInfo, setCountdownInfo] = useState<CountdownInfo | null>(null);
-  const [rematchWaiting, setRematchWaiting] = useState(false);
+  const [rematchState, setRematchState] = useState<'idle' | 'sent' | 'declined'>('idle');
+  const [rematchInvite, setRematchInvite] = useState<{ senderName: string; timeoutMs: number } | null>(null);
+  const [rematchDeclineReason, setRematchDeclineReason] = useState<'rejected' | 'timeout' | 'left' | null>(null);
 
   const lobbyWs = useRef<WebSocket | null>(null);
   const queueWs = useRef<WebSocket | null>(null);
@@ -212,6 +218,9 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
 
       if (data.type === 'CONFIRM_PHASE') {
         setPhase('confirming');
+        setRematchState('idle');
+        setRematchInvite(null);
+        setRematchDeclineReason(null);
         setConfirmInfo({
           p1Name: data.p1Name,
           p2Name: data.p2Name,
@@ -272,12 +281,28 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
           p1Elo: data.p1Elo,
           p2Elo: data.p2Elo,
         });
-        setRematchWaiting(false);
+        setRematchState('idle');
+        setRematchInvite(null);
+        setRematchDeclineReason(null);
         setPhase('ended');
       }
 
-      if (data.type === 'REMATCH_WAITING') {
-        setRematchWaiting(true);
+      if (data.type === 'REMATCH_SENT') {
+        setRematchState('sent');
+      }
+
+      if (data.type === 'REMATCH_INVITE') {
+        setRematchInvite({ senderName: data.senderName, timeoutMs: data.timeoutMs });
+      }
+
+      if (data.type === 'REMATCH_DECLINED') {
+        setRematchState('declined');
+        setRematchDeclineReason(data.reason);
+        setRematchInvite(null);
+      }
+
+      if (data.type === 'REMATCH_CANCELLED') {
+        setRematchInvite(null);
       }
 
       if (data.type === 'OPPONENT_DISCONNECTED') {
@@ -323,6 +348,22 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     }
   }, []);
 
+  const acceptRematch = useCallback(() => {
+    if (matchWs.current?.readyState === WebSocket.OPEN) {
+      const msg: ClientMessage = { type: 'REMATCH_ACCEPT' };
+      matchWs.current.send(JSON.stringify(msg));
+    }
+    setRematchInvite(null);
+  }, []);
+
+  const rejectRematch = useCallback(() => {
+    if (matchWs.current?.readyState === WebSocket.OPEN) {
+      const msg: ClientMessage = { type: 'REMATCH_REJECT' };
+      matchWs.current.send(JSON.stringify(msg));
+    }
+    setRematchInvite(null);
+  }, []);
+
   const quit = useCallback(() => {
     if (matchWs.current?.readyState === WebSocket.OPEN) {
       const msg: ClientMessage = { type: 'QUIT' };
@@ -356,11 +397,13 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     setError(null);
     setConfirmInfo(null);
     setCountdownInfo(null);
-    setRematchWaiting(false);
+    setRematchState('idle');
+    setRematchInvite(null);
+    setRematchDeclineReason(null);
   }, []);
 
   return [
-    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo, rematchWaiting },
-    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, rematch, quit, sendAction, reset },
+    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo, rematchState, rematchInvite, rematchDeclineReason },
+    { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, rematch, acceptRematch, rejectRematch, quit, sendAction, reset },
   ];
 }
