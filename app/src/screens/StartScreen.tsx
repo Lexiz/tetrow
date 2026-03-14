@@ -61,7 +61,7 @@ export default function StartScreen({ onStart, isMobile }: Props) {
           WebkitTextFillColor: 'transparent',
           filter: `drop-shadow(0 0 28px ${C.p1}66) drop-shadow(0 0 56px ${C.p2}33)`,
           lineHeight: 1,
-        }}>TETCHES</div>
+        }}>TETROW</div>
       </div>
 
       {/* Start button */}

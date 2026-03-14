@@ -318,7 +318,11 @@ export default function App() {
             forfeit={result.forfeit}
             onRematch={() => mpActions.rematch()}
             onClose={handleBackToMenu}
-            rematchWaiting={mp.rematchWaiting}
+            rematchState={mp.rematchState}
+            rematchDeclineReason={mp.rematchDeclineReason}
+            rematchInvite={mp.rematchInvite}
+            onAcceptRematch={() => mpActions.acceptRematch()}
+            onRejectRematch={() => mpActions.rejectRematch()}
             firestoreError={firestoreError}
           />
         )}
@@ -368,7 +372,7 @@ export default function App() {
         {renderScreen(false)}
       </div>
       <div style={{ marginTop: 16, color: C.white, fontFamily: 'monospace', fontSize: 8, letterSpacing: 3 }}>
-        TETCHES · v{APP_VERSION}
+        TETROW · v{APP_VERSION}
       </div>
     </div>
   );

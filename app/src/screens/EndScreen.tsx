@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import { getTopOutPenalty, type PlayerStats } from '../../../shared/game/engine';
@@ -18,11 +19,99 @@ interface Props {
   forfeit?: 1 | 2 | null;
   onRematch: () => void;
   onClose: () => void;
-  rematchWaiting?: boolean;
+  rematchState?: 'idle' | 'sent' | 'declined';
+  rematchDeclineReason?: 'rejected' | 'timeout' | 'left' | null;
+  rematchInvite?: { senderName: string; timeoutMs: number } | null;
+  onAcceptRematch?: () => void;
+  onRejectRematch?: () => void;
   firestoreError?: string | null;
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, forfeit, onRematch, onClose, rematchWaiting, firestoreError }: Props) {
+function RematchInvitePopup({ senderName, timeoutMs, onAccept, onReject }: {
+  senderName: string;
+  timeoutMs: number;
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(timeoutMs / 1000));
+
+  useEffect(() => {
+    setSecondsLeft(Math.ceil(timeoutMs / 1000));
+    const interval = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeoutMs]);
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 10,
+      background: 'rgba(0, 0, 0, 0.75)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: C.panel,
+        border: `1.5px solid ${C.p2}44`,
+        borderRadius: 10,
+        padding: '28px 36px',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 16,
+        boxShadow: `0 0 40px ${C.p2}33, 0 0 80px ${C.p2}11`,
+        maxWidth: 320,
+      }}>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
+          color: C.dim,
+        }}>REMATCH INVITE</div>
+
+        <div style={{
+          fontFamily: "'Courier New', monospace", fontSize: 14, fontWeight: 900,
+          letterSpacing: 2, color: C.p2, textAlign: 'center',
+          textShadow: `0 0 12px ${C.p2}88`,
+        }}>{senderName.toUpperCase()}</div>
+
+        <div style={{
+          fontFamily: 'monospace', fontSize: 11,
+          color: C.white, letterSpacing: 2,
+        }}>WANTS A REMATCH</div>
+
+        <div style={{
+          fontFamily: "'Courier New', monospace", fontSize: 28, fontWeight: 900,
+          color: secondsLeft <= 3 ? '#ff4466' : C.white,
+          textShadow: secondsLeft <= 3 ? '0 0 12px #ff446688' : `0 0 12px ${C.p2}44`,
+        }}>{secondsLeft}</div>
+
+        <div style={{ display: 'flex', gap: 14 }}>
+          <button onClick={onAccept} style={{
+            padding: '10px 28px',
+            background: 'transparent',
+            border: `1.5px solid ${C.p2}`,
+            borderRadius: 4,
+            fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
+            letterSpacing: 3, color: C.p2, cursor: 'pointer',
+            boxShadow: `0 0 16px ${C.p2}55, 0 0 32px ${C.p2}22`,
+          }}>ACCEPT</button>
+          <button onClick={onReject} style={{
+            padding: '10px 28px',
+            background: 'transparent',
+            border: `1.5px solid ${C.border}`,
+            borderRadius: 4,
+            fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
+            letterSpacing: 3, color: C.text, opacity: 0.7, cursor: 'pointer',
+          }}>REJECT</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, forfeit, onRematch, onClose, rematchState = 'idle', rematchDeclineReason, rematchInvite, onAcceptRematch, onRejectRematch, firestoreError }: Props) {
   const rawP1 = stats[0].basePoints + stats[0].bonusPoints;
   const rawP2 = stats[1].basePoints + stats[1].bonusPoints;
   const penalty1 = p1ToppedOut ? getTopOutPenalty(rawP1) : 0;
@@ -45,6 +134,12 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
   const valText: React.CSSProperties = { fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: C.text };
 
   const cardsTotalW = 170 * 2 + 16; // two cards + gap
+
+  const rematchDisabled = rematchState !== 'idle';
+  const rematchLabel = rematchState === 'sent' ? 'INVITE SENT...'
+    : rematchState === 'declined'
+      ? (rematchDeclineReason === 'timeout' ? 'TIMED OUT' : rematchDeclineReason === 'left' ? 'OPPONENT LEFT' : 'DECLINED')
+      : 'REMATCH';
 
   return (
     <div style={{
@@ -184,16 +279,16 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
       )}
 
       <div style={{ display: 'flex', gap: 16, marginTop: 8, zIndex: 1 }}>
-        <button onClick={onRematch} disabled={rematchWaiting} style={{
+        <button onClick={onRematch} disabled={rematchDisabled} style={{
           padding: '12px 36px',
           background: 'transparent',
           border: `1.5px solid ${C.p2}`,
           borderRadius: 4,
           fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
-          letterSpacing: 4, color: C.p2, cursor: rematchWaiting ? 'default' : 'pointer',
+          letterSpacing: 4, color: C.p2, cursor: rematchDisabled ? 'default' : 'pointer',
           boxShadow: `0 0 16px ${C.p2}55, 0 0 32px ${C.p2}22`,
-          opacity: rematchWaiting ? 0.6 : 1,
-        }}>{rematchWaiting ? 'WAITING...' : 'REMATCH'}</button>
+          opacity: rematchDisabled ? 0.6 : 1,
+        }}>{rematchLabel}</button>
         <button onClick={onClose} style={{
           padding: '12px 36px',
           background: 'transparent',
@@ -203,6 +298,16 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
           letterSpacing: 4, color: C.text, opacity: 0.7, cursor: 'pointer',
         }}>CLOSE</button>
       </div>
+
+      {/* Rematch invite popup */}
+      {rematchInvite && onAcceptRematch && onRejectRematch && (
+        <RematchInvitePopup
+          senderName={rematchInvite.senderName}
+          timeoutMs={rematchInvite.timeoutMs}
+          onAccept={onAcceptRematch}
+          onReject={onRejectRematch}
+        />
+      )}
     </div>
   );
 }
