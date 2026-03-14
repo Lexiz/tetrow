@@ -49,13 +49,6 @@ export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
       {/* Title */}
       <div style={{ textAlign: 'center', zIndex: 1 }}>
         <div style={{
-          fontFamily: 'monospace', fontSize: 9,
-          letterSpacing: 7, color: C.text, marginBottom: 10,
-          opacity: 0.7,
-        }}>
-          TWO PLAYERS · ONE BOARD
-        </div>
-        <div style={{
           fontFamily: "'Courier New', monospace",
           fontSize: isMobile ? 42 : 58, fontWeight: 900, letterSpacing: -2,
           background: `linear-gradient(130deg, ${C.p1} 0%, ${C.p1b} 40%, ${C.p2b} 70%, ${C.p2} 100%)`,
@@ -65,9 +58,11 @@ export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
           lineHeight: 1,
         }}>TETROW</div>
         <div style={{
-          fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-          color: C.text, opacity: 0.7, marginTop: 8,
-        }}>v{APP_VERSION}</div>
+          fontFamily: 'monospace', fontSize: 9,
+          letterSpacing: 7, color: C.white, marginTop: 12,
+        }}>
+          TWO PLAYERS · ONE BOARD
+        </div>
       </div>
 
       {/* Google Sign-In button */}
@@ -98,10 +93,14 @@ export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
 
       <div style={{
         zIndex: 1, fontFamily: 'monospace', fontSize: 8,
-        letterSpacing: 3, color: C.text, opacity: 0.7, textAlign: 'center',
+        letterSpacing: 3, color: C.white, textAlign: 'center',
       }}>
         COMPETITIVE TETROW · RANKED MATCHES · LEADERBOARDS
       </div>
+      <div style={{
+        zIndex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
+        color: C.white, opacity: 0.5,
+      }}>v{APP_VERSION}</div>
     </div>
   );
 }
