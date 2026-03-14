@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { APP_VERSION } from '../../../shared/version';
 
-const BASE = import.meta.env.BASE_URL; // '/tetchess/' in prod
+const BASE = import.meta.env.BASE_URL; // '/tetrow/' in prod
 
 /**
  * Returns a function that checks for a newer deployed version.
