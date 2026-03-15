@@ -1,6 +1,4 @@
 import { C } from '../../../shared/theme';
-import { CONFIG } from '../../../shared/config';
-import SpeedBar from '../common/SpeedBar';
 import MiniPiece from '../common/MiniPiece';
 
 interface Props {
@@ -14,7 +12,6 @@ interface Props {
 export default function Panel({ player, score, bandIndex, nextPiece, active }: Props) {
   const col = player === 1 ? C.p1 : C.p2;
   const brt = player === 1 ? C.p1b : C.p2b;
-  const band = CONFIG.SPEED_BANDS[bandIndex] ?? CONFIG.SPEED_BANDS[0];
 
   return (
     <div style={{
@@ -86,11 +83,15 @@ export default function Panel({ player, score, bandIndex, nextPiece, active }: P
           color: C.dim, fontFamily: 'monospace',
           fontSize: 8, letterSpacing: 3, marginBottom: 8,
         }}>SPEED</div>
-        <SpeedBar band={bandIndex} player={player} />
         <div style={{
-          color: col, fontFamily: 'monospace', fontSize: 10, marginTop: 5,
-          textShadow: `0 0 10px ${col}88`,
-        }}>{band.label} · {band.gravity}ms/cell</div>
+          color: col,
+          fontFamily: "'Courier New', monospace",
+          fontSize: 24, fontWeight: 900, letterSpacing: -1,
+          textShadow: active
+            ? `0 0 18px ${col}99, 0 0 32px ${col}44`
+            : `0 0 6px ${col}33`,
+          transition: 'text-shadow 0.4s',
+        }}>{bandIndex + 1}/7</div>
       </div>
 
       {/* Next piece */}
