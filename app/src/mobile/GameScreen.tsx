@@ -30,8 +30,8 @@ function getVisibleHeight(): number {
 
 function calcCellSize(): number {
   const availH = getVisibleHeight() - BAR_HEIGHT - 8;
-  // Reserve space for next piece previews on each side (56px each)
-  const sideSpace = 56 * 2;
+  // Reserve minimal space for next piece previews on each side
+  const sideSpace = 58 * 2; // MiniPiece (4*13 + gaps) + small padding
   const fromW = Math.floor((window.innerWidth - sideSpace) / CONFIG.COLS);
   const fromH = Math.floor(availH / CONFIG.ROWS);
   return Math.min(fromW, fromH, 36);
@@ -87,15 +87,16 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
         justifyContent: 'center',
         width: '100%',
       }}>
-        {/* P1 Next piece — left side */}
+        {/* P1 Next piece — left side, flush to edge */}
         <div style={{
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', gap: 5,
-          width: 56,
+          flexShrink: 0,
+          padding: '0 2px',
         }}>
           <div style={{
             fontFamily: 'monospace', fontSize: 7, letterSpacing: 3,
-            color: C.white, textAlign: 'center', width: '100%',
+            color: C.white, textAlign: 'center',
           }}>NEXT</div>
           <MiniPiece cells={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT} player={1} />
         </div>
@@ -162,15 +163,16 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
           </div>
         </div>
 
-        {/* P2 Next piece — right side */}
+        {/* P2 Next piece — right side, flush to edge */}
         <div style={{
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', gap: 5,
-          width: 56,
+          flexShrink: 0,
+          padding: '0 2px',
         }}>
           <div style={{
             fontFamily: 'monospace', fontSize: 7, letterSpacing: 3,
-            color: C.white, textAlign: 'center', width: '100%',
+            color: C.white, textAlign: 'center',
           }}>NEXT</div>
           <MiniPiece cells={nextCells(state.p2Next)} player={2} />
         </div>
@@ -182,11 +184,12 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
         height: BAR_HEIGHT,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         background: C.panel,
         borderTop: `1px solid ${C.border}`,
         flexShrink: 0,
-        gap: 8,
-        padding: '0 6px',
+        gap: 0,
+        padding: 0,
       }}>
         {/* P1 — left half */}
         <PlayerHalf
@@ -268,10 +271,11 @@ function PlayerHalf({ player, score, bandIndex, active }: PlayerHalfProps) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 16,
-      padding: '0 8px',
+      gap: 14,
+      padding: '0 6px',
+      height: '100%',
       background: active ? `${col}0c` : 'transparent',
-      boxShadow: active ? `inset 0 0 16px ${col}15` : 'none',
+      boxShadow: active ? `inset 0 0 20px ${col}18` : 'none',
       transition: 'all 0.3s',
     }}>
       {/* Score */}

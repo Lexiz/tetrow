@@ -179,10 +179,16 @@ function doLock(state: GameState): GameState {
     return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
   }
 
-  // Draw a replacement "next" piece for the player who just locked
-  const { bag, bagHead, next: freshNext } = drawNext(state);
-  const p1Next = owner === 1 ? freshNext : state.p1Next;
-  const p2Next = owner === 2 ? freshNext : state.p2Next;
+  // Draw replacement "next" pieces:
+  // - One for the player who just locked (their future piece)
+  // - One for the player now active (to replace the piece just consumed/spawned)
+  const draw1 = drawNext(state);
+  const draw2 = drawNext({ ...state, bag: draw1.bag, bagHead: draw1.bagHead });
+  const bag = draw2.bag;
+  const bagHead = draw2.bagHead;
+  // Owner gets draw1 (their next future piece), nextActive gets draw2 (replaces consumed piece)
+  const p1Next = owner === 1 ? draw1.next : draw2.next;
+  const p2Next = owner === 2 ? draw1.next : draw2.next;
 
   return {
     ...state,
