@@ -15,6 +15,8 @@ import StartScreen from './screens/StartScreen';
 import EndScreen from './screens/EndScreen';
 import RankedScreen from './screens/RankedScreen';
 import MatchConfirmScreen from './screens/MatchConfirmScreen';
+import TermsScreen from './screens/TermsScreen';
+import PrivacyScreen from './screens/PrivacyScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
@@ -53,7 +55,7 @@ export default function App() {
   };
 
   // Redirect to login if not authenticated
-  const currentScreen = (!user && screen !== 'login') ? 'login' : screen;
+  const currentScreen = (!user && screen !== 'login' && screen !== 'terms' && screen !== 'privacy') ? 'login' : screen;
 
   // After auth, go to menu and load profile
   if (user && currentScreen === 'login') {
@@ -223,7 +225,9 @@ export default function App() {
             padding: '4px 12px', maxWidth: '80%', textAlign: 'center',
           }}>{firestoreError}</div>
         )}
-        {currentScreen === 'login' && <LoginScreen onSignIn={signIn} authError={authError} isMobile={mobile} />}
+        {currentScreen === 'login' && <LoginScreen onSignIn={signIn} authError={authError} isMobile={mobile} onTerms={() => setScreen('terms')} onPrivacy={() => setScreen('privacy')} />}
+        {currentScreen === 'terms' && <TermsScreen onBack={() => setScreen('login')} />}
+        {currentScreen === 'privacy' && <PrivacyScreen onBack={() => setScreen('login')} />}
         {currentScreen === 'menu' && user && (
           <MainMenu
             user={user}
