@@ -56,7 +56,7 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
         alignItems: 'center', justifyContent: 'center',
         zIndex: 1,
       }}>
-        <TetrowLogo size={isMobile ? 52 : 68} />
+        <TetrowLogo size={isMobile ? 64 : 80} />
         <div style={{
           fontFamily: 'monospace', fontSize: isMobile ? 9 : 11,
           letterSpacing: 6, color: C.white, marginTop: 18, opacity: 0.8,
