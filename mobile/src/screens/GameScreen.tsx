@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import type { TetrominoType } from '../../../shared/types';
+import type { TetrominoType, Owner } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import { getShape } from '../../../shared/game/pieces';
 import type { AiDifficulty } from '../../../shared/game/ai';
@@ -52,6 +52,7 @@ export default function GameScreen({ aiDifficulty, onGameEnd, onQuit }: Props) {
     state.active,
     handleAction,
     boardWidth,
+    1 as Owner, // human always controls P1
   );
 
   const panGesture = Gesture.Pan()

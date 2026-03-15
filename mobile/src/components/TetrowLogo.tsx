@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { C } from '../../../shared/theme';
 
 interface Props {
@@ -32,21 +32,6 @@ function OrangeBlock({ s }: { s: number }) {
   );
 }
 
-function Letter({ char, color, totalH, glowColor }: { char: string; color: string; totalH: number; glowColor: string }) {
-  return (
-    <View style={{ height: totalH + 4, justifyContent: 'flex-start', overflow: 'hidden' }}>
-      <Text style={{
-        fontFamily: 'Courier',
-        fontSize: totalH * 1.78,
-        fontWeight: '900',
-        color,
-        lineHeight: totalH * 1.78 * 0.72,
-        includeFontPadding: false,
-      }}>{char}</Text>
-    </View>
-  );
-}
-
 export default function TetrowLogo({ size = 64 }: Props) {
   const gap = Math.max(1, Math.round(size * 0.03));
   const blockSize = Math.round((size - gap * 2) / 3);
@@ -55,60 +40,90 @@ export default function TetrowLogo({ size = 64 }: Props) {
 
   // T block: 5% larger
   const tBlockSize = Math.round(blockSize * 1.05);
-  const tGap = gap;
 
   // O block: 5% larger
   const oBlockSize = Math.round(blockSize * 1.05);
-  const oGap = gap;
+
+  // Font size calibrated for React Native Courier to match totalH cap-height
+  // RN Courier has ~0.72 cap-height ratio on iOS
+  const fontSize = Math.round(totalH / 0.72);
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing }}>
-      {/* "T" — cyan tetromino blocks, 5% larger, 1px lower */}
-      <View style={{ alignItems: 'center', marginTop: 1 }}>
-        <View style={{ flexDirection: 'row', gap: tGap }}>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing }}>
+      {/* "T" — cyan tetromino blocks */}
+      <View style={{ alignItems: 'center', height: totalH, justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', gap }}>
           <CyanBlock s={tBlockSize} />
           <CyanBlock s={tBlockSize} />
           <CyanBlock s={tBlockSize} />
         </View>
-        <View style={{ flexDirection: 'row', gap: tGap, marginTop: tGap }}>
+        <View style={{ flexDirection: 'row', gap }}>
           <View style={{ width: tBlockSize, opacity: 0 }} />
           <CyanBlock s={tBlockSize} />
           <View style={{ width: tBlockSize, opacity: 0 }} />
         </View>
-        <View style={{ flexDirection: 'row', gap: tGap, marginTop: tGap }}>
+        <View style={{ flexDirection: 'row', gap }}>
           <View style={{ width: tBlockSize, opacity: 0 }} />
           <CyanBlock s={tBlockSize} />
           <View style={{ width: tBlockSize, opacity: 0 }} />
         </View>
       </View>
 
-      <Letter char="E" color={C.p2} totalH={totalH} glowColor={C.p2} />
-      <Letter char="T" color={C.p2} totalH={totalH} glowColor={C.p2} />
-      <Letter char="R" color={C.p1} totalH={totalH} glowColor={C.p1} />
+      {/* E, T — cyan */}
+      <Text style={{
+        fontFamily: 'Courier',
+        fontSize,
+        fontWeight: '900',
+        color: C.p2,
+        height: totalH,
+        lineHeight: fontSize,
+        ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+      }}>ET</Text>
 
-      {/* "O" — orange blocks, 3×3 with hollow center, 5% larger, 2px lower, +2px spacing each side */}
+      {/* R — orange */}
+      <Text style={{
+        fontFamily: 'Courier',
+        fontSize,
+        fontWeight: '900',
+        color: C.p1,
+        height: totalH,
+        lineHeight: fontSize,
+        ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+      }}>R</Text>
+
+      {/* "O" — orange blocks, 3×3 with hollow center */}
       <View style={{
-        marginTop: 2,
         marginHorizontal: 2,
+        height: totalH,
+        justifyContent: 'space-between',
       }}>
-        <View style={{ flexDirection: 'row', gap: oGap }}>
+        <View style={{ flexDirection: 'row', gap }}>
           <OrangeBlock s={oBlockSize} />
           <OrangeBlock s={oBlockSize} />
           <OrangeBlock s={oBlockSize} />
         </View>
-        <View style={{ flexDirection: 'row', gap: oGap, marginTop: oGap }}>
+        <View style={{ flexDirection: 'row', gap }}>
           <OrangeBlock s={oBlockSize} />
           <View style={{ width: oBlockSize, height: oBlockSize }} />
           <OrangeBlock s={oBlockSize} />
         </View>
-        <View style={{ flexDirection: 'row', gap: oGap, marginTop: oGap }}>
+        <View style={{ flexDirection: 'row', gap }}>
           <OrangeBlock s={oBlockSize} />
           <OrangeBlock s={oBlockSize} />
           <OrangeBlock s={oBlockSize} />
         </View>
       </View>
 
-      <Letter char="W" color={C.p1} totalH={totalH} glowColor={C.p1} />
+      {/* W — orange */}
+      <Text style={{
+        fontFamily: 'Courier',
+        fontSize,
+        fontWeight: '900',
+        color: C.p1,
+        height: totalH,
+        lineHeight: fontSize,
+        ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+      }}>W</Text>
     </View>
   );
 }
