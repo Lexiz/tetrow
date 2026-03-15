@@ -1,5 +1,6 @@
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
+import TetrowLogo from '../common/TetrowLogo';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -53,15 +54,7 @@ export default function StartScreen({ onStart, isMobile }: Props) {
         }}>
           TWO PLAYERS · ONE BOARD
         </div>
-        <div style={{
-          fontFamily: "'Courier New', monospace",
-          fontSize: 58, fontWeight: 900, letterSpacing: -2,
-          background: `linear-gradient(130deg, ${C.p1} 0%, ${C.p1b} 40%, ${C.p2b} 70%, ${C.p2} 100%)`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          filter: `drop-shadow(0 0 28px ${C.p1}66) drop-shadow(0 0 56px ${C.p2}33)`,
-          lineHeight: 1,
-        }}>TETROW</div>
+        <TetrowLogo size={52} />
       </div>
 
       {/* Start button */}

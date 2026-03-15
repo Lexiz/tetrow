@@ -1,6 +1,7 @@
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import { APP_VERSION } from '../../../shared/version';
+import TetrowLogo from '../common/TetrowLogo';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -13,47 +14,7 @@ interface Props {
   onPrivacy?: () => void;
 }
 
-function TetrowLogo({ size }: { size: number }) {
-  const blockSize = Math.round(size * 0.28);
-  const gap = Math.round(blockSize * 0.08);
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
-      <span style={{
-        fontFamily: "'Courier New', monospace",
-        fontSize: size, fontWeight: 900, letterSpacing: -2,
-        color: C.p2,
-        textShadow: `0 0 20px ${C.p2}66, 0 0 40px ${C.p2}33`,
-      }}>TETR</span>
-      <span style={{
-        display: 'inline-grid',
-        gridTemplateColumns: `${blockSize}px ${blockSize}px`,
-        gap: `${gap}px`,
-        margin: '0 2px',
-        alignSelf: 'center',
-      }}>
-        {[0,1,2,3].map(i => (
-          <div key={i} style={{
-            width: blockSize, height: blockSize,
-            background: `radial-gradient(ellipse at 40% 35%, ${C.p1}ff 0%, ${C.p1}cc 40%, ${C.p1}88 100%)`,
-            border: `1.5px solid ${C.p1b}`,
-            borderRadius: 2,
-            boxShadow: `inset 0 0 4px ${C.p1}88, 0 0 6px ${C.p1}bb`,
-          }} />
-        ))}
-      </span>
-      <span style={{
-        fontFamily: "'Courier New', monospace",
-        fontSize: size, fontWeight: 900, letterSpacing: -2,
-        color: C.p2,
-        textShadow: `0 0 20px ${C.p2}66, 0 0 40px ${C.p2}33`,
-      }}>W</span>
-    </span>
-  );
-}
-
 export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, onPrivacy }: Props) {
-  const logoSize = isMobile ? 42 : 58;
-
   return (
     <div style={{
       width: isMobile ? '100vw' : W,
@@ -62,7 +23,7 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
       alignItems: 'center', justifyContent: 'space-between',
       background: C.bg,
       position: 'relative', overflow: 'hidden',
-      padding: isMobile ? '60px 16px 24px' : '48px 0 24px',
+      padding: isMobile ? '0 16px 24px' : '0 0 24px',
       boxSizing: 'border-box',
     }}>
       {/* Subtle grid overlay */}
@@ -77,30 +38,35 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
 
       {/* Ambient glow blobs */}
       {([
-        ['24%', '18%', C.p1, 260],
-        ['68%', '62%', C.p2, 220],
+        ['20%', '10%', C.p2, 300],
+        ['60%', '70%', C.p1, 260],
       ] as [string, string, string, number][]).map(([t, l, col, s], i) => (
         <div key={i} style={{
           position: 'absolute', top: t, left: l,
           width: s, height: s, borderRadius: '50%',
           background: `radial-gradient(circle, ${col}22 0%, transparent 70%)`,
-          filter: 'blur(36px)',
+          filter: 'blur(40px)',
         }} />
       ))}
 
-      {/* Top section: Logo + subtitle */}
-      <div style={{ textAlign: 'center', zIndex: 1 }}>
-        <TetrowLogo size={logoSize} />
+      {/* Logo section — centered in top half (between top edge and sign-in button) */}
+      <div style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        zIndex: 1,
+      }}>
+        <TetrowLogo size={isMobile ? 52 : 68} />
         <div style={{
-          fontFamily: 'monospace', fontSize: isMobile ? 11 : 13,
-          letterSpacing: 7, color: C.white, marginTop: 16,
+          fontFamily: 'monospace', fontSize: isMobile ? 9 : 11,
+          letterSpacing: 6, color: C.white, marginTop: 18, opacity: 0.8,
         }}>
           TWO PLAYERS · ONE BOARD
         </div>
       </div>
 
-      {/* Middle section: Sign-in button */}
-      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      {/* Sign-in button */}
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginBottom: 'auto' }}>
         <button onClick={onSignIn} style={{
           padding: '16px 44px',
           background: C.bg,
@@ -126,6 +92,9 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
           </div>
         )}
       </div>
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
 
       {/* Bottom section: tagline, legal, version */}
       <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>

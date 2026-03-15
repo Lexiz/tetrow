@@ -3,6 +3,7 @@ import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import { APP_VERSION } from '../../../shared/version';
 import type { User } from 'firebase/auth';
+import TetrowLogo from '../common/TetrowLogo';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -110,19 +111,11 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
       </div>
 
       {/* Title */}
-      <div style={{ zIndex: 1, textAlign: 'center' }}>
-        <div style={{
-          fontFamily: "'Courier New', monospace",
-          fontSize: isMobile ? 42 : 56, fontWeight: 900, letterSpacing: -2,
-          background: `linear-gradient(130deg, ${C.p1} 0%, ${C.p1b} 40%, ${C.p2b} 70%, ${C.p2} 100%)`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          filter: `drop-shadow(0 0 20px ${C.p1}44) drop-shadow(0 0 40px ${C.p2}22)`,
-          lineHeight: 1,
-        }}>TETROW</div>
+      <div style={{ zIndex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <TetrowLogo size={isMobile ? 38 : 48} />
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
-          color: C.white, opacity: 0.7, marginTop: 8,
+          color: C.white, opacity: 0.7, marginTop: 10,
         }}>COMPETITIVE TETROW</div>
       </div>
 
