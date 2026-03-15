@@ -49,14 +49,14 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
         }} />
       ))}
 
-      {/* Logo section — centered in top half (between top edge and sign-in button) */}
+      {/* Logo section — slightly above center */}
+      <div style={{ flex: 5 }} />
       <div style={{
-        flex: 1,
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center',
         zIndex: 1,
       }}>
-        <TetrowLogo size={isMobile ? 64 : 80} />
+        <TetrowLogo size={isMobile ? 45 : 56} />
         <div style={{
           fontFamily: 'monospace', fontSize: isMobile ? 9 : 11,
           letterSpacing: 6, color: C.white, marginTop: 18, opacity: 0.8,
@@ -64,15 +64,15 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
           TWO PLAYERS · ONE BOARD
         </div>
       </div>
+      <div style={{ flex: 4 }} />
 
-      {/* Sign-in button */}
-      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginBottom: 'auto' }}>
+      {/* Sign-in button — lower portion */}
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <button onClick={onSignIn} style={{
           padding: '16px 44px',
           background: C.bg,
-          border: '2px solid transparent',
-          borderImage: `linear-gradient(135deg, ${C.p1}, ${C.p2}) 1`,
-          borderRadius: 0,
+          border: `2px solid ${C.border}`,
+          borderRadius: 5,
           fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
           letterSpacing: 3, color: C.white, cursor: 'pointer',
           boxShadow: `0 0 12px ${C.p1}44, 0 0 12px ${C.p2}44, inset 0 0 8px rgba(255,180,100,0.06)`,
@@ -92,9 +92,7 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
           </div>
         )}
       </div>
-
-      {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: 3 }} />
 
       {/* Bottom section: tagline, legal, version */}
       <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>

@@ -4,16 +4,14 @@ interface Props {
   size?: number; // base font size, default 64
 }
 
-function CyanBlock({ s, glow }: { s: number; glow?: boolean }) {
+function CyanBlock({ s }: { s: number }) {
   return (
     <div style={{
       width: s, height: s,
-      background: `linear-gradient(135deg, ${C.p2}dd 0%, ${C.p2}88 100%)`,
+      background: `radial-gradient(ellipse at 50% 50%, ${C.p2}33 0%, ${C.p2}99 55%, ${C.p2}dd 100%)`,
       border: `1.5px solid ${C.p2b}`,
       borderRadius: 2,
-      boxShadow: glow !== false
-        ? `inset 0 0 6px ${C.p2}66, 0 0 8px ${C.p2}88, 0 0 16px ${C.p2}44`
-        : 'none',
+      boxShadow: `inset 0 0 6px ${C.p2}66, 0 0 8px ${C.p2}88, 0 0 16px ${C.p2}44`,
     }} />
   );
 }
@@ -22,7 +20,7 @@ function OrangeBlock({ s }: { s: number }) {
   return (
     <div style={{
       width: s, height: s,
-      background: `radial-gradient(ellipse at 40% 35%, ${C.p1}ff 0%, ${C.p1}cc 40%, ${C.p1}88 100%)`,
+      background: `radial-gradient(ellipse at 50% 50%, ${C.p1}33 0%, ${C.p1}99 55%, ${C.p1}dd 100%)`,
       border: `1.5px solid ${C.p1b}`,
       borderRadius: 2,
       boxShadow: `inset 0 0 5px ${C.p1}88, 0 0 8px ${C.p1}bb, 0 0 16px ${C.p1}55`,
@@ -30,79 +28,87 @@ function OrangeBlock({ s }: { s: number }) {
   );
 }
 
+function Letter({ char, color, totalH, glowColor }: { char: string; color: string; totalH: number; glowColor: string }) {
+  return (
+    <span style={{
+      fontFamily: "'Courier New', monospace",
+      fontSize: totalH * 1.78, fontWeight: 900,
+      color,
+      textShadow: `0 0 16px ${glowColor}88, 0 0 32px ${glowColor}44`,
+      lineHeight: 0.72,
+      height: totalH + 4,
+      paddingBottom: 4,
+      display: 'inline-flex', alignItems: 'flex-start',
+      overflow: 'hidden',
+    }}>{char}</span>
+  );
+}
+
 export default function TetrowLogo({ size = 64 }: Props) {
-  // Block size: 3 blocks tall = font height, so each block = size / 3 (minus gaps)
   const gap = Math.max(1, Math.round(size * 0.03));
   const blockSize = Math.round((size - gap * 2) / 3);
-  const totalH = blockSize * 3 + gap * 2; // actual pixel height of block columns
+  const totalH = blockSize * 3 + gap * 2;
+  const spacing = Math.round(size * 0.04);
+
+  // T block: 10% larger
+  const tBlockSize = Math.round(blockSize * 1.05);
+  const tGap = gap;
+
+  // O block: 5% larger
+  const oBlockSize = Math.round(blockSize * 1.05);
+  const oGap = gap;
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'flex-end', lineHeight: 1 }}>
-      {/* "T" — cyan tetromino blocks, T-piece shape, 3 blocks tall */}
+    <div style={{ display: 'inline-flex', alignItems: 'flex-start', gap: spacing, lineHeight: 1 }}>
+      {/* "T" — cyan tetromino blocks, 10% larger, 2px lower */}
       <div style={{
         display: 'flex', flexDirection: 'column',
         alignItems: 'center',
-        marginRight: Math.round(size * 0.04),
-        height: totalH,
+        marginTop: 1,
       }}>
-        {/* Top row: 3 blocks */}
-        <div style={{ display: 'flex', gap }}>
-          <CyanBlock s={blockSize} />
-          <CyanBlock s={blockSize} />
-          <CyanBlock s={blockSize} />
+        <div style={{ display: 'flex', gap: tGap }}>
+          <CyanBlock s={tBlockSize} />
+          <CyanBlock s={tBlockSize} />
+          <CyanBlock s={tBlockSize} />
         </div>
-        {/* Middle: 1 block centered */}
-        <div style={{ display: 'flex', gap, marginTop: gap }}>
-          <div style={{ width: blockSize, opacity: 0 }} />
-          <CyanBlock s={blockSize} />
-          <div style={{ width: blockSize, opacity: 0 }} />
+        <div style={{ display: 'flex', gap: tGap, marginTop: tGap }}>
+          <div style={{ width: tBlockSize, opacity: 0 }} />
+          <CyanBlock s={tBlockSize} />
+          <div style={{ width: tBlockSize, opacity: 0 }} />
         </div>
-        {/* Bottom: 1 block centered */}
-        <div style={{ display: 'flex', gap, marginTop: gap }}>
-          <div style={{ width: blockSize, opacity: 0 }} />
-          <CyanBlock s={blockSize} />
-          <div style={{ width: blockSize, opacity: 0 }} />
+        <div style={{ display: 'flex', gap: tGap, marginTop: tGap }}>
+          <div style={{ width: tBlockSize, opacity: 0 }} />
+          <CyanBlock s={tBlockSize} />
+          <div style={{ width: tBlockSize, opacity: 0 }} />
         </div>
       </div>
 
-      {/* "ETR" — cyan text, same height as blocks */}
-      <span style={{
-        fontFamily: "'Courier New', monospace",
-        fontSize: totalH * 1.35, fontWeight: 900, letterSpacing: -1,
-        color: C.p2,
-        textShadow: `0 0 16px ${C.p2}88, 0 0 32px ${C.p2}44`,
-        lineHeight: `${totalH}px`,
-        height: totalH,
-        display: 'inline-flex', alignItems: 'flex-end',
-      }}>ETR</span>
+      <Letter char="E" color={C.p2} totalH={totalH} glowColor={C.p2} />
+      <Letter char="T" color={C.p2} totalH={totalH} glowColor={C.p2} />
+      <Letter char="R" color={C.p1} totalH={totalH} glowColor={C.p1} />
 
-      {/* "O" — orange blocks, 3 tall × 2 wide */}
+      {/* "O" — orange blocks, 3×3 with hollow center, 5% larger, 1px lower, +2px spacing each side */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `${blockSize}px ${blockSize}px`,
-        gridTemplateRows: `${blockSize}px ${blockSize}px ${blockSize}px`,
-        gap,
-        margin: `0 ${Math.round(size * 0.04)}px`,
-        height: totalH,
+        gridTemplateColumns: `${oBlockSize}px ${oBlockSize}px ${oBlockSize}px`,
+        gridTemplateRows: `${oBlockSize}px ${oBlockSize}px ${oBlockSize}px`,
+        gap: oGap,
+        marginTop: 2,
+        marginLeft: 2,
+        marginRight: 2,
       }}>
-        <OrangeBlock s={blockSize} />
-        <OrangeBlock s={blockSize} />
-        <OrangeBlock s={blockSize} />
-        <OrangeBlock s={blockSize} />
-        <OrangeBlock s={blockSize} />
-        <OrangeBlock s={blockSize} />
+        <OrangeBlock s={oBlockSize} />
+        <OrangeBlock s={oBlockSize} />
+        <OrangeBlock s={oBlockSize} />
+        <OrangeBlock s={oBlockSize} />
+        <div style={{ width: oBlockSize, height: oBlockSize }} /> {/* hollow center */}
+        <OrangeBlock s={oBlockSize} />
+        <OrangeBlock s={oBlockSize} />
+        <OrangeBlock s={oBlockSize} />
+        <OrangeBlock s={oBlockSize} />
       </div>
 
-      {/* "W" — orange text, same height as blocks */}
-      <span style={{
-        fontFamily: "'Courier New', monospace",
-        fontSize: totalH * 1.35, fontWeight: 900, letterSpacing: -1,
-        color: C.p1,
-        textShadow: `0 0 16px ${C.p1}88, 0 0 32px ${C.p1}44`,
-        lineHeight: `${totalH}px`,
-        height: totalH,
-        display: 'inline-flex', alignItems: 'flex-end',
-      }}>W</span>
+      <Letter char="W" color={C.p1} totalH={totalH} glowColor={C.p1} />
     </div>
   );
 }
