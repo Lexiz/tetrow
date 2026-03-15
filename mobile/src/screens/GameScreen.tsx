@@ -16,7 +16,7 @@ import MiniPiece from '../components/MiniPiece';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useTouchInput } from '../hooks/useTouchInput';
 
-const BAR_HEIGHT = 90;
+const BAR_HEIGHT = 64;
 const HIDDEN_NEXT: [number, number][] = [];
 
 interface Props {
@@ -118,20 +118,18 @@ export default function GameScreen({ aiDifficulty, onGameEnd, onQuit }: Props) {
         {/* P1 box */}
         <View style={[
           styles.playerBox,
-          { borderColor: p1Active ? C.p1 + '66' : C.border },
+          { borderColor: p1Active ? C.p1 + '66' : C.border, justifyContent: 'flex-end' },
           p1Active && styles.playerBoxGlow,
         ]}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>SCORE</Text>
-            <Text style={styles.statValue}>{state.scores[0].toLocaleString()}</Text>
+          <View style={styles.scoreSpeedStack}>
+            <Text style={styles.statLabelSmall}>SCORE</Text>
+            <Text style={styles.statValueSmall}>{state.scores[0].toLocaleString()}</Text>
+            <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+            <Text style={[styles.statValueSpeedSmall, { color: C.p1 }]}>{p1BandIdx + 1}/7</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>SPEED</Text>
-            <Text style={[styles.statValue, { color: C.p1 }]}>{p1BandIdx + 1}/7</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>NEXT</Text>
-            <View style={styles.miniPieceWrap}>
+          <View style={styles.nextItemSmall}>
+            <Text style={styles.statLabelSmall}>NEXT</Text>
+            <View style={styles.miniPieceSmall}>
               <MiniPiece cells={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT} player={1} />
             </View>
           </View>
@@ -149,22 +147,20 @@ export default function GameScreen({ aiDifficulty, onGameEnd, onQuit }: Props) {
         {/* P2 box */}
         <View style={[
           styles.playerBox,
-          { borderColor: p2Active ? C.p2 + '66' : C.border },
+          { borderColor: p2Active ? C.p2 + '66' : C.border, justifyContent: 'flex-start' },
           p2Active && styles.playerBoxGlowP2,
         ]}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>NEXT</Text>
-            <View style={styles.miniPieceWrap}>
+          <View style={styles.nextItemSmall}>
+            <Text style={styles.statLabelSmall}>NEXT</Text>
+            <View style={styles.miniPieceSmall}>
               <MiniPiece cells={nextCells(state.p2Next)} player={2} />
             </View>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>SPEED</Text>
-            <Text style={[styles.statValue, { color: C.p2 }]}>{p2BandIdx + 1}/7</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>SCORE</Text>
-            <Text style={styles.statValue}>{state.scores[1].toLocaleString()}</Text>
+          <View style={styles.scoreSpeedStack}>
+            <Text style={styles.statLabelSmall}>SCORE</Text>
+            <Text style={styles.statValueSmall}>{state.scores[1].toLocaleString()}</Text>
+            <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+            <Text style={[styles.statValueSpeedSmall, { color: C.p2 }]}>{p2BandIdx + 1}/7</Text>
           </View>
         </View>
       </View>
@@ -216,13 +212,41 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    height: BAR_HEIGHT - 16,
+    gap: 8,
+    height: BAR_HEIGHT - 12,
     backgroundColor: C.panel,
     borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+  },
+  scoreSpeedStack: {
+    alignItems: 'center',
+    gap: 0,
+  },
+  nextItemSmall: {
+    alignItems: 'center',
+  },
+  statLabelSmall: {
+    fontFamily: 'Courier',
+    fontSize: 5,
+    letterSpacing: 1,
+    color: C.white,
+    opacity: 0.5,
+  },
+  statValueSmall: {
+    fontFamily: 'Courier',
+    fontSize: 13,
+    fontWeight: '900',
+    color: C.white,
+  },
+  statValueSpeedSmall: {
+    fontFamily: 'Courier',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  miniPieceSmall: {
+    marginTop: 1,
+    transform: [{ scale: 0.7 }],
   },
   playerBoxGlow: {
     shadowColor: C.p1,

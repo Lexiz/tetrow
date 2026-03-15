@@ -13,7 +13,7 @@ import { useMultiplayerGame } from '../hooks/useMultiplayerGame';
 import { useTouchInput } from '../hooks/useTouchInput';
 import { useLineClearEvents } from '../hooks/useLineClearEvents';
 
-const BAR_HEIGHT = 90;
+const BAR_HEIGHT = 64;
 
 interface Props {
   gameState: ClientGameState | null;
@@ -243,30 +243,25 @@ interface PlayerHalfProps {
 function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
-  const scoreItem = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  const scoreSpeedItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
       <span style={{
-        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
         color: C.white, opacity: 0.5,
       }}>SCORE</span>
       <span style={{
         fontFamily: "'Courier New', monospace",
-        fontSize: 18, fontWeight: 900, color: C.white,
-        textShadow: active ? `0 0 10px ${col}55` : 'none',
+        fontSize: 13, fontWeight: 900, color: C.white,
+        textShadow: active ? `0 0 8px ${col}55` : 'none',
       }}>{score.toLocaleString()}</span>
-    </div>
-  );
-
-  const speedItem = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <span style={{
-        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
-        color: C.white, opacity: 0.5,
+        fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
+        color: C.white, opacity: 0.5, marginTop: 1,
       }}>SPEED</span>
       <span style={{
         fontFamily: "'Courier New', monospace",
-        fontSize: 16, fontWeight: 900, color: col,
-        textShadow: `0 0 8px ${col}66`,
+        fontSize: 11, fontWeight: 900, color: col,
+        textShadow: `0 0 6px ${col}66`,
       }}>{bandIndex + 1}/7</span>
     </div>
   );
@@ -274,34 +269,32 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfP
   const nextItem = (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <span style={{
-        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
         color: C.white, opacity: 0.5,
       }}>NEXT</span>
-      <div style={{ marginTop: 2 }}>
+      <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
         <MiniPiece cells={nextPiece} player={player} />
       </div>
     </div>
   );
 
-  // P1: Score, Speed, Next pushed to right edge
-  // P2: Next, Speed, Score pushed to left edge
   return (
     <div style={{
       flex: 1,
       display: 'flex',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: player === 1 ? 'flex-end' : 'flex-start',
-      gap: 10,
-      padding: '18px 8px 8px',
+      gap: 8,
+      padding: '4px 6px',
       background: active ? `${col}0c` : C.panel,
       border: `1.5px solid ${active ? col + '88' : C.border}`,
-      borderRadius: 8,
-      boxShadow: active ? `0 0 16px ${col}22, inset 0 0 16px ${col}10` : 'none',
+      borderRadius: 6,
+      boxShadow: active ? `0 0 12px ${col}22, inset 0 0 12px ${col}10` : 'none',
       transition: 'all 0.3s',
     }}>
       {player === 1
-        ? <>{scoreItem}{speedItem}{nextItem}</>
-        : <>{nextItem}{speedItem}{scoreItem}</>
+        ? <>{scoreSpeedItem}{nextItem}</>
+        : <>{nextItem}{scoreSpeedItem}</>
       }
     </div>
   );
