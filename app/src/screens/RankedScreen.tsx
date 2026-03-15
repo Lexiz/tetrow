@@ -205,10 +205,10 @@ export default function RankedScreen({
       width: isMobile ? '100vw' : W,
       height: isMobile ? '100dvh' : H,
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: C.bg, gap: 20,
+      alignItems: 'center',
+      background: C.bg, gap: 16,
       position: 'relative', overflow: 'hidden',
-      padding: isMobile ? '16px' : 0,
+      padding: isMobile ? '16px 16px 16px' : '16px 0',
       boxSizing: 'border-box',
     }}>
       {/* Back button */}
@@ -221,80 +221,79 @@ export default function RankedScreen({
 
       {/* Ambient glow */}
       <div style={{
-        position: 'absolute', top: '30%', left: '50%',
+        position: 'absolute', top: '20%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 300, height: 300, borderRadius: '50%',
         background: `radial-gradient(circle, ${C.p2}18 0%, transparent 65%)`,
         filter: 'blur(40px)',
       }} />
 
-      {/* Header: ELO + rank (left) | stats (right) */}
-      <div style={{
-        zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 24, width: isMobile ? '100%' : 380, maxWidth: 420,
-      }}>
-        {/* Left: ELO + rank */}
-        <div style={{ textAlign: 'center', position: 'relative' }}>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
-          }}>RANKED MODE</div>
-          <div style={{
-            fontFamily: "'Courier New', monospace", fontSize: 36, fontWeight: 900,
-            color: C.white, marginTop: 4,
-          }}>{elo}</div>
-          <div
-            onClick={() => setShowRankInfo(!showRankInfo)}
-            style={{
-              fontFamily: 'monospace', fontSize: 10, letterSpacing: 3,
-              fontWeight: 900, color: rankCol, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-            }}
-          >
-            <span style={{ fontSize: 14 }}>{rankIcon}</span>
-            {rankLabel}
-          </div>
+      {/* Spacer to push stats card down from back button */}
+      <div style={{ height: 32 }} />
 
+      {/* Stats card — bordered box like our buttons */}
+      <div style={{
+        zIndex: 1,
+        width: isMobile ? '100%' : 380,
+        maxWidth: 420,
+        padding: '16px 20px',
+        background: '#080812',
+        border: `2px solid ${C.p2}44`,
+        borderRadius: 8,
+        boxShadow: `0 0 20px ${C.p2}11`,
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+        boxSizing: 'border-box',
+      }}>
+        {/* Rank */}
+        <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => setShowRankInfo(!showRankInfo)}>
+          <div style={{ fontFamily: 'monospace', fontSize: 7, letterSpacing: 2, color: C.white, opacity: 0.5 }}>MODE:</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
+            <span style={{ fontSize: 14 }}>{rankIcon}</span>
+            <span style={{
+              fontFamily: "'Courier New', monospace", fontSize: 14, fontWeight: 900,
+              color: rankCol, letterSpacing: 1,
+            }}>{rankLabel}</span>
+          </div>
         </div>
 
-        {/* Divider */}
-        <div style={{
-          width: 1, height: 50, background: `${C.border}`,
-        }} />
-
-        {/* Right: stats */}
+        {/* ELO */}
         <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 7, letterSpacing: 2, color: C.white, opacity: 0.5 }}>ELO:</div>
           <div style={{
-            fontFamily: 'monospace', fontSize: 9, letterSpacing: 5, color: C.white,
-          }}>RANKED GAMES</div>
-          <div style={{
-            fontFamily: "'Courier New', monospace", fontSize: 24, fontWeight: 900,
+            fontFamily: "'Courier New', monospace", fontSize: 22, fontWeight: 900,
             color: C.white, marginTop: 2,
-          }}>{gamesPlayed}</div>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 11, color: C.text, marginTop: 4,
-            display: 'flex', gap: 8, justifyContent: 'center',
-          }}>
-            <span style={{ color: '#22cc44' }}>{wins}W</span>
-            <span style={{ color: '#ff4466' }}>{losses}L</span>
-            {draws > 0 && <span style={{ color: C.text }}>{draws}D</span>}
+          }}>{elo}</div>
+        </div>
+
+        {/* Games */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 7, letterSpacing: 2, color: C.white, opacity: 0.5 }}>GAMES:</div>
+          <div style={{ marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'center' }}>
+            <span style={{
+              fontFamily: "'Courier New', monospace", fontSize: 22, fontWeight: 900, color: C.white,
+            }}>{gamesPlayed}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 9, color: C.text }}>
+              (<span style={{ color: '#22cc44' }}>{wins}W</span> <span style={{ color: '#ff4466' }}>{losses}L</span>)
+            </span>
           </div>
-          {gamesPlayed > 0 && (
-            <div style={{
-              fontFamily: 'monospace', fontSize: 9, color: C.white, opacity: 0.7, marginTop: 2,
-            }}>{Math.round((wins / gamesPlayed) * 100)}% win rate</div>
-          )}
         </div>
       </div>
 
-      {/* Find Match button */}
+      {/* Find Match button — gradient border like main menu */}
       <button onClick={onFindMatch} style={{
-        zIndex: 1, padding: '14px 48px',
-        background: C.bg,
-        border: `2px solid ${C.p2}`,
-        borderRadius: 5, cursor: 'pointer',
-        fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
-        letterSpacing: 4, color: C.white,
-        boxShadow: `0 0 12px ${C.p2}44, 0 0 24px ${C.p2}18`,
+        zIndex: 1,
+        width: isMobile ? '100%' : 380,
+        maxWidth: 420,
+        padding: '18px 48px',
+        background: '#080812',
+        border: '2px solid transparent',
+        borderImage: `linear-gradient(135deg, ${C.p1}, ${C.p2}) 1`,
+        borderRadius: 0,
+        cursor: 'pointer',
+        fontFamily: 'monospace', fontSize: 15, fontWeight: 900,
+        letterSpacing: 5, color: C.white,
+        boxShadow: `0 0 12px ${C.p1}33, 0 0 12px ${C.p2}33`,
+        boxSizing: 'border-box',
       }}>FIND MATCH</button>
 
       {/* Lobby count */}
@@ -354,8 +353,8 @@ export default function RankedScreen({
         zIndex: 1,
         width: isMobile ? '100%' : 380,
         maxWidth: 420,
-        minHeight: 200,
-        maxHeight: 260,
+        flex: 1,
+        minHeight: 0,
         overflowY: 'auto',
         background: C.panel,
         border: `1px solid ${C.border}`,

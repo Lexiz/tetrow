@@ -8,6 +8,7 @@ const TAP_MAX_MOVE = 10;        // max px movement to count as a tap
 const TAP_MAX_TIME = 250;       // max ms for a tap
 const MOVE_STEP = 28;           // horizontal px per move trigger during drag
 const SOFT_DROP_STEP = 28;      // vertical px per soft drop trigger during drag
+const HARD_DROP_LOCK_RATIO = 1.5; // dy/dx ratio to lock out horizontal moves
 
 /**
  * Touch gesture controls for mobile:
@@ -41,6 +42,7 @@ export function useTouchInput(
     let lastMoveX = 0;   // track cumulative horizontal drag
     let lastMoveY = 0;   // track cumulative vertical drag
     let handled = false;  // whether we've consumed this touch as a drag/swipe
+    let hardDropLocked = false; // lock horizontal movement when a hard drop swipe is detected
 
     function fire(action: InputAction) {
       onActionRef.current(humanRef.current ?? activeRef.current, action);
@@ -54,6 +56,7 @@ export function useTouchInput(
       lastMoveY = t.clientY;
       startTime = Date.now();
       handled = false;
+      hardDropLocked = false;
     }
 
     function handleTouchMove(e: TouchEvent) {
@@ -69,8 +72,13 @@ export function useTouchInput(
         handled = true;
       }
 
-      // Horizontal drag → repeated moves
-      if (Math.abs(dx) >= MOVE_STEP) {
+      // Detect hard drop intent: if moving predominantly downward, lock horizontal
+      if (!hardDropLocked && totalDy > SWIPE_THRESHOLD && Math.abs(totalDy) > Math.abs(totalDx) * HARD_DROP_LOCK_RATIO) {
+        hardDropLocked = true;
+      }
+
+      // Horizontal drag → repeated moves (only if not locked for hard drop)
+      if (!hardDropLocked && Math.abs(dx) >= MOVE_STEP) {
         const moves = Math.floor(Math.abs(dx) / MOVE_STEP);
         for (let i = 0; i < moves; i++) {
           fire(dx > 0 ? 'right' : 'left');
@@ -78,8 +86,8 @@ export function useTouchInput(
         lastMoveX += (dx > 0 ? 1 : -1) * moves * MOVE_STEP;
       }
 
-      // Vertical drag down → soft drop
-      if (dy > SOFT_DROP_STEP) {
+      // Vertical drag down → soft drop (only if slow enough, not a hard drop swipe)
+      if (!hardDropLocked && dy > SOFT_DROP_STEP) {
         const drops = Math.floor(dy / SOFT_DROP_STEP);
         for (let i = 0; i < drops; i++) {
           fire('softDrop');
