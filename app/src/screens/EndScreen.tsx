@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import { getTopOutPenalty, type PlayerStats } from '../../../shared/game/engine';
+import type { PlayerStats } from '../../../shared/game/engine';
 
 const W = CONFIG.COLS * CONFIG.CELL_SIZE + 400;
 const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
@@ -24,6 +24,7 @@ interface Props {
   rematchInvite?: { senderName: string; timeoutMs: number } | null;
   onAcceptRematch?: () => void;
   onRejectRematch?: () => void;
+  rematchButtonLabel?: string;
   firestoreError?: string | null;
 }
 
@@ -111,11 +112,7 @@ function RematchInvitePopup({ senderName, timeoutMs, onAccept, onReject }: {
   );
 }
 
-export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, forfeit, onRematch, onClose, rematchState = 'idle', rematchDeclineReason, rematchInvite, onAcceptRematch, onRejectRematch, firestoreError }: Props) {
-  const rawP1 = stats[0].basePoints + stats[0].bonusPoints;
-  const rawP2 = stats[1].basePoints + stats[1].bonusPoints;
-  const penalty1 = p1ToppedOut ? getTopOutPenalty(rawP1) : 0;
-  const penalty2 = p2ToppedOut ? getTopOutPenalty(rawP2) : 0;
+export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, p1Name, p2Name, stats, p1EloChange, p2EloChange, forfeit, onRematch, onClose, rematchState = 'idle', rematchDeclineReason, rematchInvite, onAcceptRematch, onRejectRematch, rematchButtonLabel, firestoreError }: Props) {
   const finalP1 = p1Score;
   const finalP2 = p2Score;
   const winner: 1 | 2 | null = finalP1 > finalP2 ? 1 : finalP2 > finalP1 ? 2 : null;
@@ -126,8 +123,8 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
   const winnerName = winner === 1 ? name1 : winner === 2 ? name2 : null;
 
   const players = [
-    { n: 1 as const, name: name1, final: finalP1, penalty: penalty1, topped: p1ToppedOut, win: winner === 1, col: C.p1, brt: C.p1b, stat: stats[0], eloChange: p1EloChange },
-    { n: 2 as const, name: name2, final: finalP2, penalty: penalty2, topped: p2ToppedOut, win: winner === 2, col: C.p2, brt: C.p2b, stat: stats[1], eloChange: p2EloChange },
+    { n: 1 as const, name: name1, final: finalP1, win: winner === 1, col: C.p1, brt: C.p1b, stat: stats[0], eloChange: p1EloChange },
+    { n: 2 as const, name: name2, final: finalP2, win: winner === 2, col: C.p2, brt: C.p2b, stat: stats[1], eloChange: p2EloChange },
   ];
 
   const dimText: React.CSSProperties = { fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5 };
@@ -139,7 +136,7 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
   const rematchLabel = rematchState === 'sent' ? 'INVITE SENT...'
     : rematchState === 'declined'
       ? (rematchDeclineReason === 'timeout' ? 'TIMED OUT' : rematchDeclineReason === 'left' ? 'OPPONENT LEFT' : 'DECLINED')
-      : 'REMATCH';
+      : (rematchButtonLabel || 'REMATCH');
 
   return (
     <div style={{
@@ -175,7 +172,7 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
 
       {/* Score cards */}
       <div style={{ display: 'flex', gap: 16, zIndex: 1, maxWidth: W - 40 }}>
-        {players.map(({ n, name, final, penalty, topped, win, col, brt, stat, eloChange }) => {
+        {players.map(({ n, name, final, win, col, brt, stat, eloChange }) => {
           const opCol = n === 1 ? C.p2 : C.p1;
           return (
             <div key={n} style={{
@@ -233,12 +230,6 @@ export default function EndScreen({ p1Score, p2Score, p1ToppedOut, p2ToppedOut, 
                   <span style={dimText}>Bonus pts</span>
                   <span style={{ ...valText, color: opCol }}>+{stat.bonusPoints}</span>
                 </div>
-                {topped && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={dimText}>Top-out</span>
-                    <span style={{ ...valText, color: '#ff4466' }}>−{penalty}</span>
-                  </div>
-                )}
               </div>
 
               {/* Line clears */}

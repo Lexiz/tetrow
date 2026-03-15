@@ -215,8 +215,8 @@ export default function RankedScreen({
       <button onClick={onBack} style={{
         position: 'absolute', top: 16, left: 16, zIndex: 2,
         background: 'none', border: `1px solid ${C.border}`,
-        borderRadius: 3, padding: '4px 10px', cursor: 'pointer',
-        fontFamily: 'monospace', fontSize: 9, color: C.white, letterSpacing: 1,
+        borderRadius: 4, padding: '6px 14px', cursor: 'pointer',
+        fontFamily: 'monospace', fontSize: 11, color: C.white, letterSpacing: 1,
       }}>← BACK</button>
 
       {/* Ambient glow */}

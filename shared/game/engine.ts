@@ -46,6 +46,9 @@ export interface GameState {
 
   // Per-player cumulative stats for end screen
   stats: [PlayerStats, PlayerStats];
+
+  // Extra turn mechanic: true if the active player is on their bonus turn
+  isBonusTurn: boolean;
 }
 
 export type Action =
@@ -82,11 +85,8 @@ export function getTopOutPenalty(score: number): number {
 }
 
 function resolveEnd(state: GameState, board: SettledBoard, scores: [number, number]): GameState {
-  const s: [number, number] = [scores[0], scores[1]];
-  if (state.toppedOut[0]) s[0] -= getTopOutPenalty(scores[0]);
-  if (state.toppedOut[1]) s[1] -= getTopOutPenalty(scores[1]);
-  const winner: Owner | null = s[0] > s[1] ? 1 : s[1] > s[0] ? 2 : null;
-  return { ...state, board, scores: s, phase: 'ended', winner };
+  const winner: Owner | null = scores[0] > scores[1] ? 1 : scores[1] > scores[0] ? 2 : null;
+  return { ...state, board, scores, phase: 'ended', winner };
 }
 
 function handleTopOut(
@@ -168,14 +168,49 @@ function doLock(state: GameState): GameState {
     return resolveEnd({ ...state, toppedOut: state.toppedOut, p2HasPlaced, lastClear, clearedRows: clearedRowIndices, stats }, board, scores);
   }
 
-  // Normal turn: spawn next piece for the waiting player
+  // Extra turn mechanic: if lines cleared and not already on bonus turn, same player goes again
+  const earnedBonusTurn = linesCleared > 0 && !state.isBonusTurn;
+
+  if (earnedBonusTurn) {
+    // Same player gets another turn — spawn their own next piece
+    const nextType = owner === 1 ? state.p1Next : state.p2Next;
+    const nextPiece = spawnPiece(nextType);
+
+    if (!isValid(nextPiece, board)) {
+      return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
+    }
+
+    // Draw a replacement next for this player
+    const draw1 = drawNext(state);
+    const p1Next = owner === 1 ? draw1.next : state.p1Next;
+    const p2Next = owner === 2 ? draw1.next : state.p2Next;
+
+    return {
+      ...state,
+      board,
+      active: owner, // same player
+      piece: nextPiece,
+      isGrounded: grounded(nextPiece, board),
+      lockResets: 0,
+      bag: draw1.bag,
+      bagHead: draw1.bagHead,
+      p1Next,
+      p2Next,
+      scores,
+      p2HasPlaced,
+      lastClear,
+      clearedRows: clearedRowIndices,
+      stats,
+      isBonusTurn: true,
+    };
+  }
+
+  // Normal turn switch: spawn next piece for the waiting player
   const nextActive: Owner = owner === 1 ? 2 : 1;
   const nextType = nextActive === 1 ? state.p1Next : state.p2Next;
   const nextPiece = spawnPiece(nextType);
 
   if (!isValid(nextPiece, board)) {
-    // The player who just placed (owner) caused the top-out — they get the penalty.
-    // The other player (nextActive) gets one equalizer turn.
     return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
   }
 
@@ -206,6 +241,7 @@ function doLock(state: GameState): GameState {
     lastClear,
     clearedRows: clearedRowIndices,
     stats,
+    isBonusTurn: false,
   };
 }
 
@@ -290,6 +326,7 @@ export function createInitialState(): GameState {
     lastClear: null,
     clearedRows: [],
     stats: [emptyStats(), emptyStats()],
+    isBonusTurn: false,
   };
 }
 

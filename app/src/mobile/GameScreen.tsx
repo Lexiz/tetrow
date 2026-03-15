@@ -15,7 +15,7 @@ import type { AiDifficulty } from '../../../shared/game/ai';
 import { useLineClearEvents } from '../hooks/useLineClearEvents';
 
 const HIDDEN_NEXT: [number, number][] = [];
-const BAR_HEIGHT = 64;
+const BAR_HEIGHT = 90;
 
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) => void;
@@ -30,9 +30,7 @@ function getVisibleHeight(): number {
 
 function calcCellSize(): number {
   const availH = getVisibleHeight() - BAR_HEIGHT - 8;
-  // Reserve minimal space for next piece previews on each side
-  const sideSpace = 58 * 2; // MiniPiece (4*13 + gaps) + small padding
-  const fromW = Math.floor((window.innerWidth - sideSpace) / CONFIG.COLS);
+  const fromW = Math.floor((window.innerWidth - 12) / CONFIG.COLS);
   const fromH = Math.floor(availH / CONFIG.ROWS);
   return Math.min(fromW, fromH, 36);
 }
@@ -79,7 +77,7 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
       background: '#030306',
       overflow: 'hidden',
     }}>
-      {/* Board area with next piece indicators on sides */}
+      {/* Board area */}
       <div style={{
         flex: 1,
         display: 'flex',
@@ -87,21 +85,6 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
         justifyContent: 'center',
         width: '100%',
       }}>
-        {/* P1 Next piece — left side, flush to edge */}
-        <div style={{
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 5,
-          flexShrink: 0,
-          padding: '0 2px',
-        }}>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 7, letterSpacing: 3,
-            color: C.white, textAlign: 'center',
-          }}>NEXT</div>
-          <MiniPiece cells={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT} player={1} />
-        </div>
-
-        {/* Board */}
         <div style={{ position: 'relative' }}>
           <div ref={boardRef} style={{ position: 'relative', touchAction: 'none' }}>
             <BoardComponent board={displayBoard} cellSize={cellSize} />
@@ -162,62 +145,48 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
             )}
           </div>
         </div>
-
-        {/* P2 Next piece — right side, flush to edge */}
-        <div style={{
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 5,
-          flexShrink: 0,
-          padding: '0 2px',
-        }}>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 7, letterSpacing: 3,
-            color: C.white, textAlign: 'center',
-          }}>NEXT</div>
-          <MiniPiece cells={nextCells(state.p2Next)} player={2} />
-        </div>
       </div>
 
-      {/* Bottom bar — P1 left, P2 right */}
+      {/* Bottom bar — P1 left, pause center, P2 right */}
       <div style={{
         width: '100%',
-        height: BAR_HEIGHT,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: C.panel,
-        borderTop: `1px solid ${C.border}`,
         flexShrink: 0,
-        gap: 0,
-        padding: 0,
+        gap: 10,
+        padding: '6px 10px',
+        boxSizing: 'border-box',
       }}>
-        {/* P1 — left half */}
+        {/* P1 */}
         <PlayerHalf
           player={1}
           score={state.scores[0]}
           bandIndex={p1BandIdx}
           active={p1Active}
+          nextPiece={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT}
         />
 
-        {/* Pause button between players */}
+        {/* Pause button */}
         <button
           onClick={onQuit && !ended ? () => setShowPause(true) : undefined}
           style={{
-            background: 'none', border: `1px solid ${C.border}`,
-            borderRadius: 4, padding: '6px 10px', cursor: onQuit ? 'pointer' : 'default',
+            background: C.panel, border: `1.5px solid ${C.border}`,
+            borderRadius: 6, padding: '10px 12px', cursor: onQuit ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, opacity: 0.7,
+            flexShrink: 0,
           }}
         >
-          <span style={{ fontFamily: 'monospace', fontSize: 14, color: C.white, lineHeight: 1 }}>⏸</span>
+          <span style={{ fontFamily: 'monospace', fontSize: 16, color: C.white, lineHeight: 1 }}>⏸</span>
         </button>
 
-        {/* P2 — right half */}
+        {/* P2 */}
         <PlayerHalf
           player={2}
           score={state.scores[1]}
           bandIndex={p2BandIdx}
           active={p2Active}
+          nextPiece={nextCells(state.p2Next)}
         />
       </div>
 
@@ -260,49 +229,72 @@ interface PlayerHalfProps {
   score: number;
   bandIndex: number;
   active: boolean;
+  nextPiece: [number, number][];
 }
 
-function PlayerHalf({ player, score, bandIndex, active }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
+  const scoreItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{
+        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        color: C.white, opacity: 0.5,
+      }}>SCORE</span>
+      <span style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: 18, fontWeight: 900, color: C.white,
+        textShadow: active ? `0 0 10px ${col}55` : 'none',
+      }}>{score.toLocaleString()}</span>
+    </div>
+  );
+
+  const speedItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{
+        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        color: C.white, opacity: 0.5,
+      }}>SPEED</span>
+      <span style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: 16, fontWeight: 900, color: col,
+        textShadow: `0 0 8px ${col}66`,
+      }}>{bandIndex + 1}/7</span>
+    </div>
+  );
+
+  const nextItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{
+        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        color: C.white, opacity: 0.5,
+      }}>NEXT</span>
+      <div style={{ marginTop: 2 }}>
+        <MiniPiece cells={nextPiece} player={player} />
+      </div>
+    </div>
+  );
+
+  // P1: Score, Speed, Next pushed to right edge
+  // P2: Next, Speed, Score pushed to left edge
   return (
     <div style={{
       flex: 1,
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 14,
-      padding: '0 6px',
-      height: '100%',
-      background: active ? `${col}0c` : 'transparent',
-      boxShadow: active ? `inset 0 0 20px ${col}18` : 'none',
+      alignItems: 'flex-start',
+      justifyContent: player === 1 ? 'flex-end' : 'flex-start',
+      gap: 10,
+      padding: '18px 8px 8px',
+      background: active ? `${col}0c` : C.panel,
+      border: `1.5px solid ${active ? col + '88' : C.border}`,
+      borderRadius: 8,
+      boxShadow: active ? `0 0 16px ${col}22, inset 0 0 16px ${col}10` : 'none',
       transition: 'all 0.3s',
     }}>
-      {/* Score */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <span style={{
-          fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
-          color: C.white, opacity: 0.6,
-        }}>SCORE</span>
-        <span style={{
-          fontFamily: "'Courier New', monospace",
-          fontSize: 18, fontWeight: 900, color: C.white,
-          textShadow: active ? `0 0 8px ${col}55` : 'none',
-        }}>{score.toLocaleString()}</span>
-      </div>
-
-      {/* Speed */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <span style={{
-          fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
-          color: C.white, opacity: 0.6,
-        }}>SPEED</span>
-        <span style={{
-          fontFamily: "'Courier New', monospace",
-          fontSize: 16, fontWeight: 900, color: col,
-          textShadow: `0 0 8px ${col}66`,
-        }}>{bandIndex + 1}/7</span>
-      </div>
+      {player === 1
+        ? <>{scoreItem}{speedItem}{nextItem}</>
+        : <>{nextItem}{speedItem}{scoreItem}</>
+      }
     </div>
   );
 }

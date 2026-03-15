@@ -226,8 +226,8 @@ export default function App() {
           }}>{firestoreError}</div>
         )}
         {currentScreen === 'login' && <LoginScreen onSignIn={signIn} authError={authError} isMobile={mobile} onTerms={() => setScreen('terms')} onPrivacy={() => setScreen('privacy')} />}
-        {currentScreen === 'terms' && <TermsScreen onBack={() => setScreen('login')} />}
-        {currentScreen === 'privacy' && <PrivacyScreen onBack={() => setScreen('login')} />}
+        {currentScreen === 'terms' && <TermsScreen onBack={() => setScreen(user ? 'menu' : 'login')} />}
+        {currentScreen === 'privacy' && <PrivacyScreen onBack={() => setScreen(user ? 'menu' : 'login')} />}
         {currentScreen === 'menu' && user && (
           <MainMenu
             user={user}
@@ -235,6 +235,8 @@ export default function App() {
             onWarmUp={() => setScreen('warmup-select')}
             onRanked={() => setScreen('ranked')}
             onSignOut={handleSignOut}
+            onTerms={() => setScreen('terms')}
+            onPrivacy={() => setScreen('privacy')}
             isMobile={mobile}
           />
         )}
@@ -320,13 +322,14 @@ export default function App() {
             p1EloChange={result.p1EloChange}
             p2EloChange={result.p2EloChange}
             forfeit={result.forfeit}
-            onRematch={() => mpActions.rematch()}
+            onRematch={aiDifficulty ? () => setScreen('warmup') : () => mpActions.rematch()}
             onClose={handleBackToMenu}
-            rematchState={mp.rematchState}
-            rematchDeclineReason={mp.rematchDeclineReason}
-            rematchInvite={mp.rematchInvite}
-            onAcceptRematch={() => mpActions.acceptRematch()}
-            onRejectRematch={() => mpActions.rejectRematch()}
+            rematchButtonLabel={aiDifficulty ? 'PLAY AGAIN' : undefined}
+            rematchState={aiDifficulty ? 'idle' : mp.rematchState}
+            rematchDeclineReason={aiDifficulty ? null : mp.rematchDeclineReason}
+            rematchInvite={aiDifficulty ? null : mp.rematchInvite}
+            onAcceptRematch={aiDifficulty ? undefined : () => mpActions.acceptRematch()}
+            onRejectRematch={aiDifficulty ? undefined : () => mpActions.rejectRematch()}
             firestoreError={firestoreError}
           />
         )}
