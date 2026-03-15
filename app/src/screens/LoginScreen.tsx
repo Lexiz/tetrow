@@ -9,18 +9,60 @@ interface Props {
   onSignIn: () => void;
   authError?: string | null;
   isMobile?: boolean;
+  onTerms?: () => void;
+  onPrivacy?: () => void;
 }
 
-export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
+function TetrowLogo({ size }: { size: number }) {
+  const blockSize = Math.round(size * 0.28);
+  const gap = Math.round(blockSize * 0.08);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+      <span style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: size, fontWeight: 900, letterSpacing: -2,
+        color: C.p2,
+        textShadow: `0 0 20px ${C.p2}66, 0 0 40px ${C.p2}33`,
+      }}>TETR</span>
+      <span style={{
+        display: 'inline-grid',
+        gridTemplateColumns: `${blockSize}px ${blockSize}px`,
+        gap: `${gap}px`,
+        margin: '0 2px',
+        alignSelf: 'center',
+      }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{
+            width: blockSize, height: blockSize,
+            background: `radial-gradient(ellipse at 40% 35%, ${C.p1}ff 0%, ${C.p1}cc 40%, ${C.p1}88 100%)`,
+            border: `1.5px solid ${C.p1b}`,
+            borderRadius: 2,
+            boxShadow: `inset 0 0 4px ${C.p1}88, 0 0 6px ${C.p1}bb`,
+          }} />
+        ))}
+      </span>
+      <span style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: size, fontWeight: 900, letterSpacing: -2,
+        color: C.p2,
+        textShadow: `0 0 20px ${C.p2}66, 0 0 40px ${C.p2}33`,
+      }}>W</span>
+    </span>
+  );
+}
+
+export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, onPrivacy }: Props) {
+  const logoSize = isMobile ? 42 : 58;
+
   return (
     <div style={{
       width: isMobile ? '100vw' : W,
       height: isMobile ? '100dvh' : H,
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: C.bg, gap: 32,
+      alignItems: 'center', justifyContent: 'space-between',
+      background: C.bg,
       position: 'relative', overflow: 'hidden',
-      padding: isMobile ? '16px' : 0,
+      padding: isMobile ? '60px 16px 24px' : '48px 0 24px',
       boxSizing: 'border-box',
     }}>
       {/* Subtle grid overlay */}
@@ -46,61 +88,73 @@ export default function LoginScreen({ onSignIn, authError, isMobile }: Props) {
         }} />
       ))}
 
-      {/* Title */}
+      {/* Top section: Logo + subtitle */}
       <div style={{ textAlign: 'center', zIndex: 1 }}>
+        <TetrowLogo size={logoSize} />
         <div style={{
-          fontFamily: "'Courier New', monospace",
-          fontSize: isMobile ? 42 : 58, fontWeight: 900, letterSpacing: -2,
-          background: `linear-gradient(130deg, ${C.p1} 0%, ${C.p1b} 40%, ${C.p2b} 70%, ${C.p2} 100%)`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          filter: `drop-shadow(0 0 28px ${C.p1}66) drop-shadow(0 0 56px ${C.p2}33)`,
-          lineHeight: 1,
-        }}>TETROW</div>
-        <div style={{
-          fontFamily: 'monospace', fontSize: 9,
-          letterSpacing: 7, color: C.white, marginTop: 12,
+          fontFamily: 'monospace', fontSize: isMobile ? 11 : 13,
+          letterSpacing: 7, color: C.white, marginTop: 16,
         }}>
           TWO PLAYERS · ONE BOARD
         </div>
       </div>
 
-      {/* Google Sign-In button */}
-      <button onClick={onSignIn} style={{
-        zIndex: 1,
-        padding: '14px 36px',
-        background: C.bg,
-        border: `2px solid rgba(255,200,140,0.45)`,
-        borderRadius: 5,
-        fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
-        letterSpacing: 3, color: C.white, cursor: 'pointer',
-        boxShadow: `0 0 7px rgba(255,180,100,0.4), 0 0 12px rgba(255,150,60,0.15), inset 0 0 8px rgba(255,180,100,0.06)`,
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <GoogleIcon />
-        SIGN IN WITH GOOGLE
-      </button>
-
-      {authError && (
-        <div style={{
-          zIndex: 1, fontFamily: 'monospace', fontSize: 10,
-          color: '#ff6b6b', textAlign: 'center', maxWidth: 300,
-          lineHeight: 1.4,
+      {/* Middle section: Sign-in button */}
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <button onClick={onSignIn} style={{
+          padding: '16px 44px',
+          background: C.bg,
+          border: '2px solid transparent',
+          borderImage: `linear-gradient(135deg, ${C.p1}, ${C.p2}) 1`,
+          borderRadius: 0,
+          fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
+          letterSpacing: 3, color: C.white, cursor: 'pointer',
+          boxShadow: `0 0 12px ${C.p1}44, 0 0 12px ${C.p2}44, inset 0 0 8px rgba(255,180,100,0.06)`,
+          display: 'flex', alignItems: 'center', gap: 14,
         }}>
-          {authError}
-        </div>
-      )}
+          <GoogleIcon />
+          SIGN IN WITH GOOGLE
+        </button>
 
-      <div style={{
-        zIndex: 1, fontFamily: 'monospace', fontSize: 8,
-        letterSpacing: 3, color: C.white, textAlign: 'center',
-      }}>
-        COMPETITIVE TETROW · RANKED MATCHES · LEADERBOARDS
+        {authError && (
+          <div style={{
+            fontFamily: 'monospace', fontSize: 10,
+            color: '#ff6b6b', textAlign: 'center', maxWidth: 300,
+            lineHeight: 1.4,
+          }}>
+            {authError}
+          </div>
+        )}
       </div>
-      <div style={{
-        zIndex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-        color: C.white, opacity: 0.5,
-      }}>v{APP_VERSION}</div>
+
+      {/* Bottom section: tagline, legal, version */}
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 8,
+          letterSpacing: 3, color: C.white, textAlign: 'center',
+        }}>
+          COMPETITIVE TETROW · RANKED MATCHES · LEADERBOARDS
+        </div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 8,
+          letterSpacing: 2, color: C.white, opacity: 0.5,
+          display: 'flex', gap: 8,
+        }}>
+          <span
+            onClick={onTerms}
+            style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >TERMS OF SERVICE</span>
+          <span>|</span>
+          <span
+            onClick={onPrivacy}
+            style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >PRIVACY POLICY</span>
+        </div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
+          color: C.white, opacity: 0.35,
+        }}>v{APP_VERSION}</div>
+      </div>
     </div>
   );
 }
