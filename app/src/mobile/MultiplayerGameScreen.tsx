@@ -9,12 +9,11 @@ import ScorePopup from '../common/ScorePopup';
 import LineClearEffect from '../common/LineClearEffect';
 import GamePauseOverlay from '../common/GamePauseOverlay';
 import MiniPiece from '../common/MiniPiece';
-import SpeedBar from '../common/SpeedBar';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame';
 import { useTouchInput } from '../hooks/useTouchInput';
 import { useLineClearEvents } from '../hooks/useLineClearEvents';
 
-const BAR_HEIGHT = 64;
+const BAR_HEIGHT = 90;
 
 interface Props {
   gameState: ClientGameState | null;
@@ -158,33 +157,46 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar — P1 left, pause center, P2 right */}
       <div style={{
         width: '100%',
-        height: BAR_HEIGHT,
         display: 'flex',
-        background: C.panel,
-        borderTop: `1px solid ${C.border}`,
+        alignItems: 'center',
+        justifyContent: 'center',
         flexShrink: 0,
+        gap: 10,
+        padding: '6px 10px',
+        boxSizing: 'border-box',
       }}>
+        {/* P1 */}
         <PlayerHalf
           player={1}
-          label={myPlayer === 1 ? 'YOU' : opponentName}
           score={game.scores[0]}
           bandIndex={game.p1BandIdx}
-          nextPiece={game.p1Next}
           active={game.active === 1 && !game.ended}
-          onClick={myPlayer === 1 ? () => setShowPause(true) : undefined}
+          nextPiece={game.p1Next}
         />
-        <div style={{ width: 1, background: C.border, alignSelf: 'stretch' }} />
+
+        {/* Pause button */}
+        <button
+          onClick={!game.ended ? () => setShowPause(true) : undefined}
+          style={{
+            background: C.panel, border: `1.5px solid ${C.border}`,
+            borderRadius: 6, padding: '10px 12px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontFamily: 'monospace', fontSize: 16, color: C.white, lineHeight: 1 }}>⏸</span>
+        </button>
+
+        {/* P2 */}
         <PlayerHalf
           player={2}
-          label={myPlayer === 2 ? 'YOU' : opponentName}
           score={game.scores[1]}
           bandIndex={game.p2BandIdx}
-          nextPiece={game.p2Next}
           active={game.active === 2 && !game.ended}
-          onClick={myPlayer === 2 ? () => setShowPause(true) : undefined}
+          nextPiece={game.p2Next}
         />
       </div>
 
@@ -222,48 +234,75 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
 
 interface PlayerHalfProps {
   player: 1 | 2;
-  label: string;
   score: number;
   bandIndex: number;
-  nextPiece: [number, number][];
   active: boolean;
-  onClick?: () => void;
+  nextPiece: [number, number][];
 }
 
-function PlayerHalf({ player, label, score, bandIndex, nextPiece, active, onClick }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
+
+  const scoreItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{
+        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        color: C.white, opacity: 0.5,
+      }}>SCORE</span>
+      <span style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: 18, fontWeight: 900, color: C.white,
+        textShadow: active ? `0 0 10px ${col}55` : 'none',
+      }}>{score.toLocaleString()}</span>
+    </div>
+  );
+
+  const speedItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{
+        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        color: C.white, opacity: 0.5,
+      }}>SPEED</span>
+      <span style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: 16, fontWeight: 900, color: col,
+        textShadow: `0 0 8px ${col}66`,
+      }}>{bandIndex + 1}/7</span>
+    </div>
+  );
+
+  const nextItem = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{
+        fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
+        color: C.white, opacity: 0.5,
+      }}>NEXT</span>
+      <div style={{ marginTop: 2 }}>
+        <MiniPiece cells={nextPiece} player={player} />
+      </div>
+    </div>
+  );
+
+  // P1: Score, Speed, Next pushed to right edge
+  // P2: Next, Speed, Score pushed to left edge
   return (
-    <div onClick={onClick} style={{
+    <div style={{
       flex: 1,
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 10px',
-      background: active ? `${col}0c` : 'transparent',
-      boxShadow: active ? `inset 0 0 16px ${col}15` : 'none',
+      alignItems: 'flex-start',
+      justifyContent: player === 1 ? 'flex-end' : 'flex-start',
+      gap: 10,
+      padding: '18px 8px 8px',
+      background: active ? `${col}0c` : C.panel,
+      border: `1.5px solid ${active ? col + '88' : C.border}`,
+      borderRadius: 8,
+      boxShadow: active ? `0 0 16px ${col}22, inset 0 0 16px ${col}10` : 'none',
       transition: 'all 0.3s',
-      cursor: onClick ? 'pointer' : 'default',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{
-          width: 7, height: 7, borderRadius: '50%',
-          background: col,
-          boxShadow: active ? `0 0 8px ${col}` : 'none',
-        }} />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{
-            fontFamily: 'monospace', fontSize: 7, letterSpacing: 2,
-            color: col, opacity: active ? 1 : 0.5,
-          }}>{label}</span>
-          <span style={{
-            fontFamily: "'Courier New', monospace",
-            fontSize: 16, fontWeight: 900, color: C.white,
-            textShadow: active ? `0 0 8px ${col}55` : 'none',
-          }}>{score.toLocaleString()}</span>
-        </div>
-      </div>
-      <SpeedBar band={bandIndex} player={player} />
-      <MiniPiece cells={nextPiece} player={player} />
+      {player === 1
+        ? <>{scoreItem}{speedItem}{nextItem}</>
+        : <>{nextItem}{speedItem}{scoreItem}</>
+      }
     </div>
   );
 }
