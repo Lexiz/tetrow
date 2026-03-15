@@ -26,9 +26,12 @@ const P2_KEYS: Record<string, InputAction> = {
 export function useInput(
   activePlayer: Owner,
   onAction: (player: Owner, action: InputAction) => void,
+  humanPlayer?: Owner, // if set, arrow keys always control this player (e.g. 1 for vs AI)
 ) {
   const activeRef = useRef(activePlayer);
   activeRef.current = activePlayer;
+  const humanRef = useRef(humanPlayer);
+  humanRef.current = humanPlayer;
   const onActionRef = useRef(onAction);
   onActionRef.current = onAction;
 
@@ -51,8 +54,9 @@ export function useInput(
       const p2Action = P2_KEYS[e.code];
       const action = p1Action ?? p2Action;
       if (!action) return;
-      // TEST MODE: arrow keys control whichever player is active
-      const player: Owner = p1Action ? activeRef.current : 2;
+      // If humanPlayer is set, arrow keys always control that player;
+      // otherwise test mode: arrow keys control whichever player is active
+      const player: Owner = p1Action ? (humanRef.current ?? activeRef.current) : 2;
 
       // Prevent browser scroll on arrow/space keys
       if (['ArrowLeft','ArrowRight','ArrowDown','ArrowUp','Space'].includes(e.code)) {

@@ -9,10 +9,9 @@ import {
   type GameState,
 } from '../../../shared/game/engine';
 import { aiFindPlacement, type AiDifficulty } from '../../../shared/game/ai';
-import { useInput } from './useInput';
 
 interface EngineOptions {
-  aiPlayer?: Owner;          // which player the AI controls (2 for warm-up)
+  aiPlayer?: Owner;
   aiDifficulty?: AiDifficulty;
 }
 
@@ -23,8 +22,7 @@ export function useGameEngine(options?: EngineOptions) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // ── Gravity timer ────────────────────────────────────────────────────────
-  // Restarts whenever the active player or their score band changes
+  // ── Gravity timer ──────────────────────────────────────────────────────
   const activeScore = state.scores[state.active - 1];
   const gravityMs = getGravityMs(activeScore);
 
@@ -36,7 +34,7 @@ export function useGameEngine(options?: EngineOptions) {
     return () => clearInterval(id);
   }, [state.active, gravityMs, state.phase, state.isBonusTurn]);
 
-  // ── Lock delay timer ─────────────────────────────────────────────────────
+  // ── Lock delay timer ───────────────────────────────────────────────────
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function clearLockTimer() {
@@ -50,29 +48,25 @@ export function useGameEngine(options?: EngineOptions) {
     if (state.phase === 'ended') { clearLockTimer(); return; }
 
     if (state.isGrounded) {
-      // Start lock timer if not already running
       if (lockTimerRef.current === null) {
         lockTimerRef.current = setTimeout(() => {
           lockTimerRef.current = null;
           dispatch({ type: 'LOCK' });
-        }, 500); // CONFIG.LOCK_DELAY
+        }, 500);
       }
-      // If lock resets have been exhausted, let the existing timer run
     } else {
-      // Piece is airborne — cancel any pending lock
       clearLockTimer();
     }
 
     return clearLockTimer;
   }, [state.isGrounded, state.lockResets, state.phase]);
 
-  // Reset lock timer on movement (if still grounded and resets remain)
+  // Reset lock timer on movement
   const prevGroundedRef = useRef(false);
   useEffect(() => {
     const wasGrounded = prevGroundedRef.current;
     prevGroundedRef.current = state.isGrounded;
 
-    // Movement while grounded and lockResets increased → reset the timer
     if (state.isGrounded && wasGrounded && lockTimerRef.current !== null) {
       clearLockTimer();
       lockTimerRef.current = setTimeout(() => {
@@ -82,11 +76,11 @@ export function useGameEngine(options?: EngineOptions) {
     }
   }, [state.lockResets]);
 
-  // ── Input handling ────────────────────────────────────────────────────────
+  // ── Input handling ─────────────────────────────────────────────────────
   const handleAction = useCallback((player: Owner, action: string) => {
     const s = stateRef.current;
     if (s.phase === 'ended') return;
-    if (player !== s.active) return; // only active player's input accepted
+    if (player !== s.active) return;
 
     switch (action) {
       case 'left':       dispatch({ type: 'MOVE', dc: -1 }); break;
@@ -98,15 +92,11 @@ export function useGameEngine(options?: EngineOptions) {
     }
   }, []);
 
-  // When playing vs AI, human always controls P1; otherwise test mode (both)
-  useInput(state.active, handleAction, aiPlayer ? (1 as Owner) : undefined);
-
-  // ── AI turn ────────────────────────────────────────────────────────────────
+  // ── AI turn ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!aiPlayer || state.phase === 'ended') return;
     if (state.active !== aiPlayer) return;
 
-    // Small delay to make AI feel natural
     const delay = 300 + Math.random() * 400;
     const timer = setTimeout(() => {
       const s = stateRef.current;
@@ -114,12 +104,10 @@ export function useGameEngine(options?: EngineOptions) {
 
       const placement = aiFindPlacement(s.board, s.piece.type, aiPlayer, aiDifficulty);
       if (!placement) {
-        // No valid placement — just hard drop wherever
         dispatch({ type: 'HARD_DROP' });
         return;
       }
 
-      // Execute rotation
       const targetRot = placement.rot;
       const currentRot = s.piece.rot;
       const cwSteps = (targetRot - currentRot + 4) % 4;
@@ -131,25 +119,21 @@ export function useGameEngine(options?: EngineOptions) {
         for (let i = 0; i < ccwSteps; i++) dispatch({ type: 'ROTATE', cw: false });
       }
 
-      // Execute horizontal movement
       const dc = placement.col - s.piece.col;
       const dir = dc > 0 ? 1 : -1;
       for (let i = 0; i < Math.abs(dc); i++) dispatch({ type: 'MOVE', dc: dir });
 
-      // Hard drop
       dispatch({ type: 'HARD_DROP' });
     }, delay);
 
     return () => clearTimeout(timer);
   }, [state.active, state.phase, state.isBonusTurn, aiPlayer, aiDifficulty]);
 
-  // ── Derived display values ────────────────────────────────────────────────
+  // ── Derived display values ─────────────────────────────────────────────
   const displayBoard = state.phase !== 'ended' ? computeDisplayBoard(state) : state.board;
 
   const p1BandIdx = getBandIndex(state.scores[0]);
   const p2BandIdx = getBandIndex(state.scores[1]);
-
-  // Opening visibility rule: hide P1's next until P2 completes first placement
   const showP1Next = state.p2HasPlaced;
 
   return {

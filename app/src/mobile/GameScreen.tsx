@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import type { TetrominoType } from '../../../shared/types';
+import type { TetrominoType, Owner } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import { getShape } from '../../../shared/game/pieces';
 import BoardComponent from '../common/Board';
@@ -58,7 +58,7 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Pr
   const cellSize = useMobileCellSize();
   const boardRef = useRef<HTMLDivElement>(null);
   const [showPause, setShowPause] = useState(false);
-  useTouchInput(state.active, handleAction, boardRef);
+  useTouchInput(state.active, handleAction, boardRef, aiDifficulty ? (1 as Owner) : undefined);
   const clearEvents = useLineClearEvents(state.lastClear, state.clearedRows);
   const ended = state.phase === 'ended';
   const p1Active = state.active === 1 && !ended;

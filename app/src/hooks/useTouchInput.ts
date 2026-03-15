@@ -22,9 +22,12 @@ export function useTouchInput(
   activePlayer: Owner,
   onAction: (player: Owner, action: InputAction) => void,
   containerRef: React.RefObject<HTMLElement | null>,
+  humanPlayer?: Owner,
 ) {
   const activeRef = useRef(activePlayer);
   activeRef.current = activePlayer;
+  const humanRef = useRef(humanPlayer);
+  humanRef.current = humanPlayer;
   const onActionRef = useRef(onAction);
   onActionRef.current = onAction;
 
@@ -40,7 +43,7 @@ export function useTouchInput(
     let handled = false;  // whether we've consumed this touch as a drag/swipe
 
     function fire(action: InputAction) {
-      onActionRef.current(activeRef.current, action);
+      onActionRef.current(humanRef.current ?? activeRef.current, action);
     }
 
     function handleTouchStart(e: TouchEvent) {
