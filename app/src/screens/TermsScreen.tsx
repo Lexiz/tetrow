@@ -16,8 +16,8 @@ export default function TermsScreen({ onBack }: Props) {
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <button onClick={onBack} style={{
           background: 'none', border: `1px solid ${C.border}`,
-          borderRadius: 4, padding: '6px 16px', cursor: 'pointer',
-          fontFamily: 'monospace', fontSize: 10, letterSpacing: 2,
+          borderRadius: 4, padding: '8px 18px', cursor: 'pointer',
+          fontFamily: 'monospace', fontSize: 12, letterSpacing: 2,
           color: C.white, marginBottom: 24,
         }}>← BACK</button>
 

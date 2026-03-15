@@ -14,10 +14,60 @@ interface Props {
   onWarmUp: () => void;
   onRanked: () => void;
   onSignOut: () => void;
+  onTerms?: () => void;
+  onPrivacy?: () => void;
   isMobile?: boolean;
 }
 
-export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isMobile }: Props) {
+function WarmUpIcon() {
+  const s = 8;
+  const g = 2;
+  const col = C.p1;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: g }}>
+      <div style={{ display: 'flex', gap: g }}>
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+        <div style={{ width: s, height: s, opacity: 0 }} />
+      </div>
+      <div style={{ display: 'flex', gap: g }}>
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+        <div style={{ width: s, height: s, opacity: 0 }} />
+      </div>
+      <div style={{ display: 'flex', gap: g }}>
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+      </div>
+    </div>
+  );
+}
+
+function RankedIcon() {
+  const s = 8;
+  const g = 2;
+  const col = C.p2;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: g, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: g }}>
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+      </div>
+      <div style={{ display: 'flex', gap: g }}>
+        <div style={{ width: s, height: s, background: col, borderRadius: 1, boxShadow: `0 0 4px ${col}88` }} />
+        <div style={{
+          width: s, height: s, borderRadius: 1,
+          border: `1px solid ${col}`,
+          boxShadow: `0 0 4px ${col}88`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{ width: 3, height: 3, background: col, borderRadius: '50%' }} />
+        </div>
+      </div>
+      <div style={{ width: 1, height: s, background: col, boxShadow: `0 0 4px ${col}88` }} />
+    </div>
+  );
+}
+
+export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, onTerms, onPrivacy, isMobile }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const displayName = user.displayName || 'Player';
   const photoURL = user.photoURL;
@@ -29,10 +79,10 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
       width: isMobile ? '100vw' : W,
       height: isMobile ? '100dvh' : H,
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: C.bg, gap: 32,
+      alignItems: 'center', justifyContent: 'space-between',
+      background: C.bg,
       position: 'relative', overflow: 'hidden',
-      padding: isMobile ? '16px' : 0,
+      padding: isMobile ? '0 20px 24px' : '0 0 24px',
       boxSizing: 'border-box',
     }}>
       {/* Subtle grid overlay */}
@@ -86,7 +136,6 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
             background: C.panel, border: `1px solid ${C.border}`,
             borderRadius: 4, overflow: 'hidden', minWidth: 140,
           }}>
-            {/* ELO info */}
             <div style={{
               padding: '10px 14px',
               borderBottom: `1px solid ${C.border}`,
@@ -110,69 +159,88 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, isM
         )}
       </div>
 
-      {/* Title */}
+      {/* Logo + subtitle */}
+      <div style={{ flex: 5 }} />
       <div style={{ zIndex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <TetrowLogo size={isMobile ? 38 : 48} />
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 5,
-          color: C.white, opacity: 0.7, marginTop: 10,
+          color: C.white, opacity: 0.7, marginTop: 12,
         }}>COMPETITIVE TETROW</div>
       </div>
+      <div style={{ flex: 3 }} />
 
-      {/* Two big buttons */}
+      {/* Buttons */}
       <div style={{
-        zIndex: 1, display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 16, width: isMobile ? '100%' : 'auto',
-        maxWidth: 420, padding: '0 24px', boxSizing: 'border-box',
+        zIndex: 1, display: 'flex', flexDirection: 'column',
+        gap: 14, width: '100%',
+        maxWidth: 380, boxSizing: 'border-box',
       }}>
         <button onClick={onWarmUp} style={{
-          flex: 1, minWidth: isMobile ? 'auto' : 180,
-          padding: '28px 24px',
+          padding: '20px 24px',
           background: '#080812',
-          border: `2px solid ${C.p1}44`,
+          border: `2px solid ${C.p1}66`,
           borderRadius: 8, cursor: 'pointer',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 8,
-          boxShadow: `0 0 20px ${C.p1}11`,
+          display: 'flex', alignItems: 'center', gap: 18,
+          boxShadow: `0 0 16px ${C.p1}11`,
         }}>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
-            letterSpacing: 3, color: C.p1,
-          }}>WARM UP</div>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5,
-            lineHeight: 1.5, textAlign: 'center',
-          }}>Practice against AI</div>
+          <WarmUpIcon />
+          <div style={{ textAlign: 'left' }}>
+            <div style={{
+              fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
+              letterSpacing: 3, color: C.p1,
+            }}>WARM UP</div>
+            <div style={{
+              fontFamily: 'monospace', fontSize: 9, color: C.white, opacity: 0.5,
+              marginTop: 4,
+            }}>Practice against AI</div>
+          </div>
         </button>
 
         <button onClick={onRanked} style={{
-          flex: 1, minWidth: isMobile ? 'auto' : 180,
-          padding: '28px 24px',
+          padding: '20px 24px',
           background: '#080812',
-          border: `2px solid ${C.p2}44`,
+          border: `2px solid ${C.p2}66`,
           borderRadius: 8, cursor: 'pointer',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 8,
-          boxShadow: `0 0 20px ${C.p2}11`,
+          display: 'flex', alignItems: 'center', gap: 18,
+          boxShadow: `0 0 16px ${C.p2}11`,
         }}>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
-            letterSpacing: 3, color: C.p2,
-          }}>PLAY RANKED</div>
-          <div style={{
-            fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.5,
-            lineHeight: 1.5, textAlign: 'center',
-          }}>Compete for ELO</div>
+          <RankedIcon />
+          <div style={{ textAlign: 'left' }}>
+            <div style={{
+              fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
+              letterSpacing: 3, color: C.p2,
+            }}>PLAY RANKED</div>
+            <div style={{
+              fontFamily: 'monospace', fontSize: 9, color: C.white, opacity: 0.5,
+              marginTop: 4,
+            }}>Compete for ELO</div>
+          </div>
         </button>
       </div>
+      <div style={{ flex: 3 }} />
 
       {/* Footer */}
-      <div style={{
-        zIndex: 1, fontFamily: 'monospace', fontSize: 8,
-        letterSpacing: 3, color: C.white,
-      }}>
-        TETROW · v{APP_VERSION}
+      <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 8,
+          letterSpacing: 2, color: C.white, opacity: 0.5,
+          display: 'flex', gap: 8,
+        }}>
+          <span
+            onClick={onTerms}
+            style={{ cursor: onTerms ? 'pointer' : 'default', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >TERMS OF SERVICE</span>
+          <span>|</span>
+          <span
+            onClick={onPrivacy}
+            style={{ cursor: onPrivacy ? 'pointer' : 'default', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >PRIVACY POLICY</span>
+        </div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 8, letterSpacing: 3,
+          color: C.white, opacity: 0.35,
+        }}>TETROW · v{APP_VERSION}</div>
       </div>
     </div>
   );
