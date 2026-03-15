@@ -68,7 +68,7 @@ export default function TetrowLogo({ size = 64 }: Props) {
       {/* "ETR" — cyan text, same height as blocks */}
       <span style={{
         fontFamily: "'Courier New', monospace",
-        fontSize: totalH * 0.82, fontWeight: 900, letterSpacing: -1,
+        fontSize: totalH * 1.35, fontWeight: 900, letterSpacing: -1,
         color: C.p2,
         textShadow: `0 0 16px ${C.p2}88, 0 0 32px ${C.p2}44`,
         lineHeight: `${totalH}px`,
@@ -96,7 +96,7 @@ export default function TetrowLogo({ size = 64 }: Props) {
       {/* "W" — orange text, same height as blocks */}
       <span style={{
         fontFamily: "'Courier New', monospace",
-        fontSize: totalH * 0.82, fontWeight: 900, letterSpacing: -1,
+        fontSize: totalH * 1.35, fontWeight: 900, letterSpacing: -1,
         color: C.p1,
         textShadow: `0 0 16px ${C.p1}88, 0 0 32px ${C.p1}44`,
         lineHeight: `${totalH}px`,
