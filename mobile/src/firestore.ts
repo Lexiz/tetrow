@@ -228,12 +228,18 @@ export async function savePracticeResult(
 }
 
 export async function getPracticeHistory(userId: string, max = 20): Promise<PracticeRecord[]> {
+  // Query without orderBy to avoid requiring a composite index.
+  // Sort client-side instead.
   const q = query(
     collection(db, 'practice'),
     where('userId', '==', userId),
-    orderBy('timestamp', 'desc'),
-    limit(max),
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as PracticeRecord) }));
+  const records = snap.docs.map(d => ({ id: d.id, ...(d.data() as PracticeRecord) }));
+  records.sort((a, b) => {
+    const ta = a.timestamp?.seconds ?? 0;
+    const tb = b.timestamp?.seconds ?? 0;
+    return tb - ta;
+  });
+  return records.slice(0, max);
 }
