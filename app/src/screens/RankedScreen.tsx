@@ -512,6 +512,7 @@ function LeaderboardTab() {
 function HistoryTab({ userId }: { userId: string }) {
   const [matches, setMatches] = useState<MatchRecord[] | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     getMatchHistory(userId, 10).then(setMatches).catch((err) => {
@@ -545,7 +546,7 @@ function HistoryTab({ userId }: { userId: string }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {matches.map((m, i) => {
         const isP1 = m.p1Id === userId;
         const myScore = isP1 ? m.p1Score : m.p2Score;
@@ -556,37 +557,104 @@ function HistoryTab({ userId }: { userId: string }) {
         const lost = (isP1 && m.winner === 2) || (!isP1 && m.winner === 1);
         const resultText = won ? 'WIN' : lost ? 'LOSS' : 'DRAW';
         const resultColor = won ? '#22cc44' : lost ? '#ff4466' : C.text;
+        const rowId = m.id ?? String(i);
+        const isExpanded = expandedId === rowId;
+        const myStats = isP1 ? m.p1Stats : m.p2Stats;
+        const oppStats = isP1 ? m.p2Stats : m.p1Stats;
+        const hasStats = myStats && oppStats;
 
         return (
-          <div key={m.id ?? i} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '6px 8px',
-            borderRadius: 4,
-            background: won ? '#22cc4408' : lost ? '#ff446608' : 'transparent',
-          }}>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
-              color: resultColor, width: 32,
-            }}>{resultText}</span>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 10, color: C.white,
-              flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>vs {oppName}</span>
-            <span style={{
-              fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
-            }}>{myScore}-{oppScore}</span>
-            {m.durationMs != null && (
+          <div key={rowId}>
+            <div
+              onClick={() => hasStats && setExpandedId(isExpanded ? null : rowId)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 8px',
+                borderRadius: 4,
+                background: won ? '#22cc4408' : lost ? '#ff446608' : 'transparent',
+                cursor: hasStats ? 'pointer' : 'default',
+              }}
+            >
               <span style={{
-                fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.4,
-              }}>{formatDuration(m.durationMs)}</span>
+                fontFamily: 'monospace', fontSize: 8, color: C.text,
+                opacity: hasStats ? 0.5 : 0,
+                transition: 'transform 0.15s',
+                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                width: 8,
+              }}>{'\u25B6'}</span>
+              <span style={{
+                fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
+                color: resultColor, width: 32,
+              }}>{resultText}</span>
+              <span style={{
+                fontFamily: 'monospace', fontSize: 10, color: C.white,
+                flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>vs {oppName}</span>
+              <span style={{
+                fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.6,
+              }}>{myScore}-{oppScore}</span>
+              {m.durationMs != null && (
+                <span style={{
+                  fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.4,
+                }}>{formatDuration(m.durationMs)}</span>
+              )}
+              <span style={{
+                fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
+                color: eloChange >= 0 ? '#22cc44' : '#ff4466',
+              }}>{eloChange >= 0 ? '+' : ''}{eloChange}</span>
+            </div>
+            {isExpanded && myStats && oppStats && (
+              <MatchDetails myStats={myStats} oppStats={oppStats} myName="You" oppName={oppName} />
             )}
-            <span style={{
-              fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
-              color: eloChange >= 0 ? '#22cc44' : '#ff4466',
-            }}>{eloChange >= 0 ? '+' : ''}{eloChange}</span>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function MatchDetails({ myStats, oppStats, myName, oppName }: {
+  myStats: import('../../../shared/game/engine').PlayerStats;
+  oppStats: import('../../../shared/game/engine').PlayerStats;
+  myName: string;
+  oppName: string;
+}) {
+  const labelStyle: React.CSSProperties = {
+    fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.5, width: 52,
+  };
+  const valStyle: React.CSSProperties = {
+    fontFamily: 'monospace', fontSize: 9, color: C.white, width: 36, textAlign: 'right',
+  };
+  const headerStyle: React.CSSProperties = {
+    fontFamily: 'monospace', fontSize: 7, color: C.text, opacity: 0.4,
+    letterSpacing: 1, width: 36, textAlign: 'right',
+  };
+
+  return (
+    <div style={{
+      margin: '2px 0 6px 16px', padding: '6px 10px',
+      background: `${C.border}22`, borderRadius: 4,
+      borderLeft: `2px solid ${C.border}`,
+    }}>
+      {/* Column headers */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 4, paddingLeft: 52 }}>
+        <span style={headerStyle}>YOU</span>
+        <span style={headerStyle}>OPP</span>
+      </div>
+      {/* Pieces */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={labelStyle}>PIECES</span>
+        <span style={valStyle}>{myStats.piecesPlaced ?? '-'}</span>
+        <span style={valStyle}>{oppStats.piecesPlaced ?? '-'}</span>
+      </div>
+      {/* Line clears */}
+      {(['SINGLE', 'DOUBLE', 'TRIPLE', 'QUAD'] as const).map((label, idx) => (
+        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={labelStyle}>{label}</span>
+          <span style={valStyle}>{myStats.clears[idx]}</span>
+          <span style={valStyle}>{oppStats.clears[idx]}</span>
+        </div>
+      ))}
     </div>
   );
 }

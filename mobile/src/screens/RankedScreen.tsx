@@ -216,6 +216,7 @@ function LeaderboardTab() {
 
 function HistoryTab({ userId }: { userId: string }) {
   const [matches, setMatches] = useState<MatchRecord[] | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     getMatchHistory(userId, 10).then(setMatches).catch(() => setMatches([]));
@@ -240,18 +241,52 @@ function HistoryTab({ userId }: { userId: string }) {
         const lost = (isP1 && m.winner === 2) || (!isP1 && m.winner === 1);
         const resultText = won ? 'WIN' : lost ? 'LOSS' : 'DRAW';
         const resultColor = won ? '#22cc44' : lost ? '#ff4466' : C.text;
+        const rowId = m.id ?? String(i);
+        const isExpanded = expandedId === rowId;
+        const myStats = isP1 ? m.p1Stats : m.p2Stats;
+        const oppStats = isP1 ? m.p2Stats : m.p1Stats;
+        const hasStats = myStats && oppStats;
 
         return (
-          <View key={m.id ?? i} style={[styles.historyRow, { backgroundColor: won ? '#22cc4408' : lost ? '#ff446608' : 'transparent' }]}>
-            <Text style={[styles.historyResult, { color: resultColor }]}>{resultText}</Text>
-            <Text style={styles.historyOpponent} numberOfLines={1}>vs {oppName}</Text>
-            <Text style={styles.historyScore}>{myScore}-{oppScore}</Text>
-            {m.durationMs != null && (
-              <Text style={styles.historyDuration}>{formatDuration(m.durationMs)}</Text>
+          <View key={rowId}>
+            <TouchableOpacity
+              activeOpacity={hasStats ? 0.7 : 1}
+              onPress={() => hasStats && setExpandedId(isExpanded ? null : rowId)}
+              style={[styles.historyRow, { backgroundColor: won ? '#22cc4408' : lost ? '#ff446608' : 'transparent' }]}
+            >
+              <Text style={{ fontFamily: 'Courier', fontSize: 8, color: C.text, opacity: hasStats ? 0.5 : 0, width: 10 }}>
+                {isExpanded ? '\u25BC' : '\u25B6'}
+              </Text>
+              <Text style={[styles.historyResult, { color: resultColor }]}>{resultText}</Text>
+              <Text style={styles.historyOpponent} numberOfLines={1}>vs {oppName}</Text>
+              <Text style={styles.historyScore}>{myScore}-{oppScore}</Text>
+              {m.durationMs != null && (
+                <Text style={styles.historyDuration}>{formatDuration(m.durationMs)}</Text>
+              )}
+              <Text style={[styles.historyElo, { color: eloChange >= 0 ? '#22cc44' : '#ff4466' }]}>
+                {eloChange >= 0 ? '+' : ''}{eloChange}
+              </Text>
+            </TouchableOpacity>
+            {isExpanded && myStats && oppStats && (
+              <View style={styles.matchDetails}>
+                <View style={[styles.detailHeaderRow, { paddingLeft: 56 }]}>
+                  <Text style={styles.detailHeader}>YOU</Text>
+                  <Text style={styles.detailHeader}>OPP</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>PIECES</Text>
+                  <Text style={styles.detailVal}>{myStats.piecesPlaced ?? '-'}</Text>
+                  <Text style={styles.detailVal}>{oppStats.piecesPlaced ?? '-'}</Text>
+                </View>
+                {(['SINGLE', 'DOUBLE', 'TRIPLE', 'QUAD'] as const).map((label, idx) => (
+                  <View key={label} style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>{label}</Text>
+                    <Text style={styles.detailVal}>{myStats.clears[idx]}</Text>
+                    <Text style={styles.detailVal}>{oppStats.clears[idx]}</Text>
+                  </View>
+                ))}
+              </View>
             )}
-            <Text style={[styles.historyElo, { color: eloChange >= 0 ? '#22cc44' : '#ff4466' }]}>
-              {eloChange >= 0 ? '+' : ''}{eloChange}
-            </Text>
           </View>
         );
       })}
@@ -413,6 +448,18 @@ const styles = StyleSheet.create({
   historyScore: { fontFamily: 'Courier', fontSize: 9, color: C.text, opacity: 0.6 },
   historyDuration: { fontFamily: 'Courier', fontSize: 8, color: C.text, opacity: 0.4 },
   historyElo: { fontFamily: 'Courier', fontSize: 9, fontWeight: '700' },
+  matchDetails: {
+    marginLeft: 16, marginBottom: 6, marginTop: 2,
+    paddingVertical: 6, paddingHorizontal: 10,
+    backgroundColor: C.border + '22',
+    borderRadius: 4,
+    borderLeftWidth: 2, borderLeftColor: C.border,
+  },
+  detailHeaderRow: { flexDirection: 'row', gap: 6, marginBottom: 4 },
+  detailHeader: { fontFamily: 'Courier', fontSize: 7, color: C.text, opacity: 0.4, letterSpacing: 1, width: 36, textAlign: 'right' },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  detailLabel: { fontFamily: 'Courier', fontSize: 8, color: C.text, opacity: 0.5, width: 52 },
+  detailVal: { fontFamily: 'Courier', fontSize: 9, color: C.white, width: 36, textAlign: 'right' },
   loadingText: { fontFamily: 'Courier', fontSize: 9, color: C.text, textAlign: 'center', padding: 20 },
   emptyText: { fontFamily: 'Courier', fontSize: 10, color: C.text, opacity: 0.5, textAlign: 'center', padding: 20 },
 });

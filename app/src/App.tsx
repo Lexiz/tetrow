@@ -21,7 +21,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
 import { useMultiplayer } from './hooks/useMultiplayer';
 import { useVersionCheck } from './hooks/useVersionCheck';
-import { getOrCreateProfile, saveMyMatchResult, calcEloChange, type UserProfile } from './firestore';
+import { getOrCreateProfile, saveMyMatchResult, savePracticeResult, calcEloChange, type UserProfile } from './firestore';
 
 interface MatchResult {
   p1Score: number;
@@ -35,12 +35,13 @@ interface MatchResult {
   forfeit?: 1 | 2 | null;
 }
 
-const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
+const emptyStats: PlayerStats = { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0], piecesPlaced: 0 };
 
 export default function App() {
   const [screen, setScreenRaw] = useState<Screen>('login');
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: [false, false], stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
+  const [practiceStartTime, setPracticeStartTime] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -147,6 +148,7 @@ export default function App() {
           er.winner,
           er.matchId,
           er.durationMs,
+          er.stats,
         )
           .then(() => {
             setFirestoreError(null);
@@ -163,10 +165,19 @@ export default function App() {
   function handleGameEnd(p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) {
     setResult({ p1Score, p2Score, toppedOut, stats });
     setScreen('end');
+
+    // Save practice game result
+    if (aiDifficulty && user) {
+      const durationMs = Date.now() - practiceStartTime;
+      const winner = p1Score > p2Score ? 1 : p2Score > p1Score ? 2 : null;
+      savePracticeResult(user.uid, aiDifficulty, p1Score, p2Score, winner as any, durationMs, stats)
+        .catch(err => console.error('Failed to save practice result:', err));
+    }
   }
 
   function handleSelectDifficulty(difficulty: AiDifficulty) {
     setAiDifficulty(difficulty);
+    setPracticeStartTime(Date.now());
     setScreen('warmup');
   }
 
@@ -242,6 +253,7 @@ export default function App() {
         )}
         {currentScreen === 'warmup-select' && (
           <WarmUpScreen
+            userId={user?.uid ?? ''}
             onSelect={handleSelectDifficulty}
             onBack={handleBackToMenu}
             isMobile={mobile}
@@ -322,7 +334,7 @@ export default function App() {
             p1EloChange={result.p1EloChange}
             p2EloChange={result.p2EloChange}
             forfeit={result.forfeit}
-            onRematch={aiDifficulty ? () => setScreen('warmup') : () => mpActions.rematch()}
+            onRematch={aiDifficulty ? () => { setPracticeStartTime(Date.now()); setScreen('warmup'); } : () => mpActions.rematch()}
             onClose={handleBackToMenu}
             rematchButtonLabel={aiDifficulty ? 'PLAY AGAIN' : undefined}
             rematchState={aiDifficulty ? 'idle' : mp.rematchState}

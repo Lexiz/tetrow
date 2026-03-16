@@ -124,7 +124,7 @@ export default function MenuScreen({ onWarmUp, onRanked, onSignOut, displayName,
           <View style={styles.buttonInner}>
             <LPieceIcon />
             <View>
-              <Text style={[styles.buttonTitle, { color: C.p1 }]}>WARM UP</Text>
+              <Text style={[styles.buttonTitle, { color: C.p1 }]}>PRACTICE</Text>
               <Text style={styles.buttonDesc}>Practice against AI</Text>
             </View>
           </View>

@@ -27,7 +27,6 @@ export interface UserProfile {
   gamesPlayed: number;
 }
 
-/** Get or create a user profile */
 export async function getOrCreateProfile(userId: string, displayName: string, photoURL: string | null): Promise<UserProfile> {
   const ref = doc(db, 'users', userId);
   const snap = await getDoc(ref);
@@ -74,21 +73,15 @@ export interface MatchRecord {
   durationMs?: number;
   p1Stats?: PlayerStats;
   p2Stats?: PlayerStats;
-  timestamp: any; // Firestore Timestamp
+  timestamp: any;
 }
 
-/** Calculate ELO change */
 export function calcEloChange(myElo: number, oppElo: number, result: number, gamesPlayed: number): number {
   const K = gamesPlayed < 30 ? 32 : 16;
   const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400));
   return Math.round(K * (result - expected));
 }
 
-/**
- * Save match result for the current user only.
- * Each client calls this independently — updates only their own profile
- * and creates a match record (deduped by matchId if provided).
- */
 export async function saveMyMatchResult(
   myId: string,
   myName: string,
@@ -104,18 +97,15 @@ export async function saveMyMatchResult(
   durationMs?: number,
   stats?: [PlayerStats, PlayerStats],
 ): Promise<void> {
-  // Get my current profile
   const myProfile = await getUserProfile(myId);
   const myElo = myProfile?.elo ?? 1200;
   const myGames = myProfile?.gamesPlayed ?? 0;
 
-  // Calculate ELO change
   const iWon = winner === myPlayerNum;
   const iLost = winner !== null && winner !== myPlayerNum;
   const myResult = iWon ? 1 : iLost ? 0 : 0.5;
   const myEloChange = calcEloChange(myElo, oppElo, myResult, myGames);
 
-  // Update my own profile
   const myUpdate: Partial<UserProfile> = {
     displayName: myName,
     photoURL: myPhotoURL,
@@ -127,11 +117,9 @@ export async function saveMyMatchResult(
   };
   await setDoc(doc(db, 'users', myId), myUpdate, { merge: true });
 
-  // Calculate opponent ELO change for the match record
   const oppResult = iWon ? 0 : iLost ? 1 : 0.5;
   const oppEloChange = calcEloChange(oppElo, myElo, oppResult, 0);
 
-  // Create match record (both clients may write — Firestore handles it)
   const p1Id = myPlayerNum === 1 ? myId : oppId;
   const p1Name_ = myPlayerNum === 1 ? myName : oppName;
   const p2Id = myPlayerNum === 2 ? myId : oppId;
@@ -154,14 +142,11 @@ export async function saveMyMatchResult(
     timestamp: serverTimestamp(),
   };
   if (matchId) {
-    // Use deterministic ID so both clients write the same document (no duplicates)
     await setDoc(doc(db, 'matches', matchId), match, { merge: true });
   } else {
     await addDoc(collection(db, 'matches'), match);
   }
 }
-
-// ── Leaderboard ──────────────────────────────────────────────────────────────
 
 export async function getLeaderboard(max = 10): Promise<(UserProfile & { id: string })[]> {
   const q = query(
@@ -173,8 +158,6 @@ export async function getLeaderboard(max = 10): Promise<(UserProfile & { id: str
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as UserProfile) }));
 }
-
-// ── Match History for a User ─────────────────────────────────────────────────
 
 export async function getMatchHistory(userId: string, max = 10): Promise<MatchRecord[]> {
   const q1 = query(
@@ -214,7 +197,7 @@ export interface PracticeRecord {
   difficulty: 'easy' | 'medium' | 'hard';
   myScore: number;
   aiScore: number;
-  winner: Owner | null;  // 1 = player won, 2 = AI won, null = draw
+  winner: Owner | null;
   durationMs: number;
   myStats: PlayerStats;
   aiStats: PlayerStats;

@@ -4,12 +4,14 @@
 
 **All changes go through feature branches and pull requests. Never push directly to `main`.**
 
+**After completing code changes, ALWAYS ask:** "Any more changes before I create the PR and deploy?" Batch multiple changes into one PR — never start the PR/deploy workflow without asking first.
+
 1. Create a feature branch: `git checkout -b feature/<short-description>`
 2. Make commits on the feature branch
 3. Push the branch: `git push -u origin feature/<short-description>`
 4. Create a PR: `gh pr create --base main`
 5. Merge immediately: `gh pr merge --squash --delete-branch`
-6. Deploy after merge: `git checkout main && git pull && cd app && npm run build && cd .. && npx gh-pages -d app/dist`
+6. Deploy after merge (see Deployment section below)
 
 Branch naming: `feature/`, `fix/`, `refactor/` prefixes.
 
@@ -78,8 +80,42 @@ tetrow/
 ## Deployment
 
 - Live site: https://lexiz.github.io/tetrow/
-- Build: `cd app && npm run build`
-- Deploy: `npx gh-pages -d app/dist`
+
+After merging a PR, deploy all affected targets:
+
+```bash
+git checkout main && git pull
+
+# 1. ALWAYS: deploy web app
+cd app && npm run build && cd .. && npx gh-pages -d app/dist
+
+# 2. IF shared/ was changed: deploy Cloudflare Worker server
+cd server && npm run deploy
+```
+
+**The server (`server/`) bundles `shared/` at deploy time.** If `shared/` changes but the server is not redeployed, ranked multiplayer games will run stale logic while warm-up games use the updated code. Always redeploy the server when `shared/` is touched.
+
+## Cross-Platform Sync (MANDATORY)
+
+Every change must be applied across all affected codebases and game modes. There are 3 UI codebases:
+
+1. **Web desktop** — `app/src/monitor/` (GameScreen, MultiplayerGameScreen, Panel, Divider)
+2. **Web mobile** — `app/src/mobile/` (GameScreen, MultiplayerGameScreen)
+3. **Mobile native (iOS)** — `mobile/src/screens/` (GameScreen, MultiplayerGameScreen)
+
+Shared screens (menus, login, end):
+- `app/src/screens/` — web (both layouts)
+- `mobile/src/screens/` — native app
+
+There are 2 game modes per platform:
+- **Warm-up** (vs AI) — local `useGameEngine` + `GameScreen`
+- **Ranked** (multiplayer) — server via WebSocket + `MultiplayerGameScreen`
+
+**Checklist for every change:**
+- UI change to game screen → update GameScreen AND MultiplayerGameScreen in all 3 codebases (up to 6 files)
+- UI change to menu/login/end screens → update both `app/src/screens/` AND `mobile/src/screens/`
+- Game logic change in `shared/` → redeploy server (`cd server && npm run deploy`)
+- Always search for all files containing the pattern being changed to verify nothing is missed
 
 ## Tech Stack
 
