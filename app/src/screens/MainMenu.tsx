@@ -189,7 +189,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, onT
             <div style={{
               fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
               letterSpacing: 3, color: C.p1,
-            }}>WARM UP</div>
+            }}>PRACTICE</div>
             <div style={{
               fontFamily: 'monospace', fontSize: 9, color: C.white, opacity: 0.5,
               marginTop: 4,

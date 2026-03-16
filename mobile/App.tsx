@@ -9,7 +9,7 @@ import type { Owner } from '../shared/types';
 import { C } from '../shared/theme';
 import { useAuth } from './src/hooks/useAuth';
 import { useMultiplayer } from './src/hooks/useMultiplayer';
-import { getOrCreateProfile, saveMyMatchResult, type UserProfile } from './src/firestore';
+import { getOrCreateProfile, saveMyMatchResult, savePracticeResult, type UserProfile } from './src/firestore';
 import LoginScreen from './src/screens/LoginScreen';
 import MenuScreen from './src/screens/MenuScreen';
 import DifficultyScreen from './src/screens/DifficultyScreen';
@@ -37,6 +37,7 @@ export default function App() {
   const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
   const [screen, setScreen] = useState<Screen>('login');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('medium');
+  const [practiceStartTime, setPracticeStartTime] = useState<number>(0);
   const [endData, setEndData] = useState<EndData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -84,6 +85,7 @@ export default function App() {
           oppElo,
           r.scores[0], r.scores[1], r.winner,
           r.matchId, r.durationMs,
+          r.stats,
         ).then(() => {
           // Refresh profile
           getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL)
@@ -150,7 +152,8 @@ export default function App() {
 
         {screen === 'difficulty' && (
           <DifficultyScreen
-            onSelect={(d) => { setDifficulty(d); setScreen('game'); }}
+            userId={user?.uid ?? ''}
+            onSelect={(d) => { setDifficulty(d); setPracticeStartTime(Date.now()); setScreen('game'); }}
             onBack={() => setScreen('menu')}
           />
         )}
@@ -161,6 +164,12 @@ export default function App() {
             onGameEnd={(p1Score, p2Score, toppedOut, stats) => {
               setEndData({ p1Score, p2Score, toppedOut, stats });
               setScreen('end');
+              if (user) {
+                const durationMs = Date.now() - practiceStartTime;
+                const winner = p1Score > p2Score ? 1 : p2Score > p1Score ? 2 : null;
+                savePracticeResult(user.uid, difficulty, p1Score, p2Score, winner as any, durationMs, stats)
+                  .catch(err => console.error('Failed to save practice result:', err));
+              }
             }}
             onQuit={() => setScreen('menu')}
           />

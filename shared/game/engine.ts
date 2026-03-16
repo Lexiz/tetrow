@@ -10,10 +10,11 @@ export interface PlayerStats {
   basePoints: number;    // points from clearing own blocks
   bonusPoints: number;   // points from clearing opponent blocks
   clears: [number, number, number, number]; // [singles, doubles, triples, quads]
+  piecesPlaced: number;  // total pieces locked by this player
 }
 
 function emptyStats(): PlayerStats {
-  return { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] };
+  return { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0], piecesPlaced: 0 };
 }
 
 export interface GameState {
@@ -154,8 +155,9 @@ function doLock(state: GameState): GameState {
     { ...state.stats[0], clears: [...state.stats[0].clears] as [number, number, number, number] },
     { ...state.stats[1], clears: [...state.stats[1].clears] as [number, number, number, number] },
   ];
+  const si = owner - 1;
+  stats[si]!.piecesPlaced += 1;
   if (linesCleared > 0) {
-    const si = owner - 1;
     stats[si]!.basePoints += base;
     stats[si]!.bonusPoints += bonus;
     stats[si]!.clears[linesCleared - 1] += 1;
@@ -214,16 +216,13 @@ function doLock(state: GameState): GameState {
     return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
   }
 
-  // Draw replacement "next" pieces:
-  // - One for the player who just locked (their future piece)
-  // - One for the player now active (to replace the piece just consumed/spawned)
+  // Draw one replacement "next" piece for the now-active player (whose next was just consumed/spawned).
+  // The locking player's next stays unchanged — they already saw it during their turn.
   const draw1 = drawNext(state);
-  const draw2 = drawNext({ ...state, bag: draw1.bag, bagHead: draw1.bagHead });
-  const bag = draw2.bag;
-  const bagHead = draw2.bagHead;
-  // Owner gets draw1 (their next future piece), nextActive gets draw2 (replaces consumed piece)
-  const p1Next = owner === 1 ? draw1.next : draw2.next;
-  const p2Next = owner === 2 ? draw1.next : draw2.next;
+  const bag = draw1.bag;
+  const bagHead = draw1.bagHead;
+  const p1Next = owner === 1 ? state.p1Next : draw1.next;
+  const p2Next = owner === 2 ? state.p2Next : draw1.next;
 
   return {
     ...state,

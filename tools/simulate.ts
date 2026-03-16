@@ -258,8 +258,8 @@ function runScenario(name: string, p1: Weights, p2: Weights, numGames: number = 
     p1Scores: [] as number[], p2Scores: [] as number[],
     p1TopOuts: 0, p2TopOuts: 0,
     totalTurns: [] as number[],
-    p1Stats: { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] as [number, number, number, number] },
-    p2Stats: { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] as [number, number, number, number] },
+    p1Stats: { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] as [number, number, number, number], piecesPlaced: 0 },
+    p2Stats: { basePoints: 0, bonusPoints: 0, clears: [0, 0, 0, 0] as [number, number, number, number], piecesPlaced: 0 },
   };
 
   for (let i = 0; i < numGames; i++) {
