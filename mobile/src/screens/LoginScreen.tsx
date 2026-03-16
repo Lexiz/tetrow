@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
     fontSize: 8,
     letterSpacing: 2,
-    color: C.text,
-    opacity: 0.3,
+    color: C.white,
   },
 });

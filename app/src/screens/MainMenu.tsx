@@ -239,7 +239,7 @@ export default function MainMenu({ user, elo, onWarmUp, onRanked, onSignOut, onT
         </div>
         <div style={{
           fontFamily: 'monospace', fontSize: 8, letterSpacing: 3,
-          color: C.white, opacity: 0.35,
+          color: C.white,
         }}>TETROW · v{APP_VERSION}</div>
       </div>
     </div>

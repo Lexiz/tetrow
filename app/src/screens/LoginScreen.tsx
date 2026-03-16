@@ -119,7 +119,7 @@ export default function LoginScreen({ onSignIn, authError, isMobile, onTerms, on
         </div>
         <div style={{
           fontFamily: 'monospace', fontSize: 9, letterSpacing: 3,
-          color: C.white, opacity: 0.35,
+          color: C.white,
         }}>v{APP_VERSION}</div>
       </div>
     </div>
