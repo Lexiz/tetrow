@@ -1,9 +1,11 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
 import type { Owner, GameMode } from '../../../shared/types';
+import { CONFIG } from '../../../shared/config';
 import {
   gameReducer,
   createInitialState,
   computeDisplayBoard,
+  getViewport,
   getBandIndex,
   getGravityMs,
   type GameState,
@@ -160,7 +162,13 @@ export function useGameEngine(options?: EngineOptions) {
   }, [state.active, state.phase, state.isBonusTurn, aiPlayer, aiDifficulty]);
 
   // ── Derived display values ────────────────────────────────────────────────
-  const displayBoard = state.phase !== 'ended' ? computeDisplayBoard(state) : state.board;
+  const fullDisplayBoard = state.phase !== 'ended' ? computeDisplayBoard(state) : state.board;
+
+  // For growing boards, extract a viewport; for classic, use the full board
+  const needsViewport = state.gameMode !== 'classic' && fullDisplayBoard.length > CONFIG.ROWS;
+  const { viewport, offset: viewportOffset } = needsViewport
+    ? getViewport(fullDisplayBoard, state)
+    : { viewport: fullDisplayBoard, offset: 0 };
 
   const p1BandIdx = getBandIndex(state.scores[0]);
   const p2BandIdx = getBandIndex(state.scores[1]);
@@ -170,7 +178,9 @@ export function useGameEngine(options?: EngineOptions) {
 
   return {
     state,
-    displayBoard,
+    displayBoard: viewport,
+    fullDisplayBoard,
+    viewportOffset,
     p1BandIdx,
     p2BandIdx,
     showP1Next,
