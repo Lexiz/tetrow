@@ -1,6 +1,6 @@
-import type { Owner, TetrominoType, CellValue, Board } from '../types';
+import type { Owner, TetrominoType, CellValue, Board, GameMode } from '../types';
 import type { PieceState, SettledBoard } from './board';
-import { emptyBoard, spawnPiece, isValid, tryMove, tryRotate, lockPiece, clearLines, ghostRow } from './board';
+import { emptyBoard, spawnPiece, isValid, tryMove, tryRotate, lockPiece, clearLines, ghostRow, extendBoard } from './board';
 import { generateBag, getShape } from './pieces';
 import { CONFIG } from '../config';
 
@@ -50,6 +50,13 @@ export interface GameState {
 
   // Extra turn mechanic: true if the active player is on their bonus turn
   isBonusTurn: boolean;
+
+  // Game mode
+  gameMode: GameMode;
+  // Hundred mode: pieces remaining per player (counts down from 100)
+  piecesRemaining?: [number, number];
+  // Five-minute mode: game start timestamp (Date.now())
+  gameStartTime?: number;
 }
 
 export type Action =
@@ -58,7 +65,8 @@ export type Action =
   | { type: 'SOFT_DROP' }
   | { type: 'HARD_DROP' }
   | { type: 'GRAVITY' }   // periodic downward tick
-  | { type: 'LOCK' };     // lock delay expired
+  | { type: 'LOCK' }      // lock delay expired
+  | { type: 'TIMER_END' }; // five-minute mode: time expired
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +105,11 @@ function handleTopOut(
   toppedPlayer: Owner,
   p2HasPlaced: boolean,
 ): GameState {
+  // Hundred mode: no top-out, extend the board upward instead
+  if (state.gameMode === 'hundred') {
+    return extendBoardAndSpawn(state, board, scores, p2HasPlaced);
+  }
+
   const topped: [boolean, boolean] = [state.toppedOut[0], state.toppedOut[1]];
   topped[toppedPlayer - 1] = true;
 
@@ -129,6 +142,66 @@ function handleTopOut(
 
   // Already in equalizer → end now
   return resolveEnd({ ...state, toppedOut: topped }, board, scores);
+}
+
+/** Hundred mode: extend board upward so the piece can spawn, then retry. */
+function extendBoardAndSpawn(
+  state: GameState,
+  board: SettledBoard,
+  scores: [number, number],
+  p2HasPlaced: boolean,
+): GameState {
+  // Add 4 rows at the top to make room
+  const extended = extendBoard(board, 4);
+
+  const nextActive: Owner = state.active === 1 ? 2 : 1;
+  const nextType = nextActive === 1 ? state.p1Next : state.p2Next;
+  const nextPiece = spawnPiece(nextType);
+
+  // Piece should now fit on the extended board
+  if (!isValid(nextPiece, extended)) {
+    // Still can't spawn even with 4 extra rows — extend more
+    const bigger = extendBoard(extended, 4);
+    const retryPiece = spawnPiece(nextType);
+    if (!isValid(retryPiece, bigger)) {
+      return resolveEnd(state, bigger, scores);
+    }
+    return finishHundredTurnSwitch(state, bigger, retryPiece, nextActive, scores, p2HasPlaced);
+  }
+
+  return finishHundredTurnSwitch(state, extended, nextPiece, nextActive, scores, p2HasPlaced);
+}
+
+function finishHundredTurnSwitch(
+  state: GameState,
+  board: SettledBoard,
+  nextPiece: PieceState,
+  nextActive: Owner,
+  scores: [number, number],
+  p2HasPlaced: boolean,
+): GameState {
+  const draw1 = drawNext(state);
+  const p1Next = state.active === 1 ? state.p1Next : draw1.next;
+  const p2Next = state.active === 2 ? state.p2Next : draw1.next;
+
+  return {
+    ...state,
+    board,
+    active: nextActive,
+    piece: nextPiece,
+    isGrounded: grounded(nextPiece, board),
+    lockResets: 0,
+    bag: draw1.bag,
+    bagHead: draw1.bagHead,
+    p1Next,
+    p2Next,
+    scores,
+    p2HasPlaced,
+    lastClear: state.lastClear,
+    clearedRows: [],
+    stats: state.stats,
+    isBonusTurn: false,
+  };
 }
 
 // ── Turn transition ───────────────────────────────────────────────────────────
@@ -170,16 +243,33 @@ function doLock(state: GameState): GameState {
     return resolveEnd({ ...state, toppedOut: state.toppedOut, p2HasPlaced, lastClear, clearedRows: clearedRowIndices, stats }, board, scores);
   }
 
+  // Hundred mode: decrement pieces remaining, end when both players hit 0
+  let piecesRemaining = state.piecesRemaining;
+  if (state.gameMode === 'hundred' && piecesRemaining) {
+    piecesRemaining = [piecesRemaining[0], piecesRemaining[1]] as [number, number];
+    piecesRemaining[owner - 1] = Math.max(0, piecesRemaining[owner - 1] - 1);
+
+    // If this player just placed their last piece, check if both are done
+    if (piecesRemaining[0] === 0 && piecesRemaining[1] === 0) {
+      return resolveEnd({ ...state, p2HasPlaced, lastClear, clearedRows: clearedRowIndices, stats, piecesRemaining }, board, scores);
+    }
+    // If only this player is done, the other player still gets turns
+    // (handled in turn switch: skip the finished player)
+  }
+
   // Extra turn mechanic: if lines cleared and not already on bonus turn, same player goes again
   const earnedBonusTurn = linesCleared > 0 && !state.isBonusTurn;
 
-  if (earnedBonusTurn) {
+  // Hundred mode: if this player has no pieces left, skip their bonus turn
+  if (earnedBonusTurn && state.gameMode === 'hundred' && piecesRemaining && piecesRemaining[owner - 1] === 0) {
+    // Don't grant bonus turn — player is out of pieces
+  } else if (earnedBonusTurn) {
     // Same player gets another turn — spawn their own next piece
     const nextType = owner === 1 ? state.p1Next : state.p2Next;
     const nextPiece = spawnPiece(nextType);
 
     if (!isValid(nextPiece, board)) {
-      return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
+      return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats, piecesRemaining }, board, scores, owner, p2HasPlaced);
     }
 
     // Draw a replacement next for this player
@@ -203,17 +293,29 @@ function doLock(state: GameState): GameState {
       lastClear,
       clearedRows: clearedRowIndices,
       stats,
+      piecesRemaining,
       isBonusTurn: true,
     };
   }
 
   // Normal turn switch: spawn next piece for the waiting player
-  const nextActive: Owner = owner === 1 ? 2 : 1;
+  let nextActive: Owner = owner === 1 ? 2 : 1;
+
+  // Hundred mode: if the next player has no pieces, keep current player (or end if both done)
+  if (state.gameMode === 'hundred' && piecesRemaining) {
+    if (piecesRemaining[nextActive - 1] === 0 && piecesRemaining[owner - 1] === 0) {
+      return resolveEnd({ ...state, p2HasPlaced, lastClear, clearedRows: clearedRowIndices, stats, piecesRemaining }, board, scores);
+    }
+    if (piecesRemaining[nextActive - 1] === 0) {
+      nextActive = owner; // other player is done, current player continues
+    }
+  }
+
   const nextType = nextActive === 1 ? state.p1Next : state.p2Next;
   const nextPiece = spawnPiece(nextType);
 
   if (!isValid(nextPiece, board)) {
-    return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats }, board, scores, owner, p2HasPlaced);
+    return handleTopOut({ ...state, lastClear, clearedRows: clearedRowIndices, stats, piecesRemaining }, board, scores, owner, p2HasPlaced);
   }
 
   // Draw one replacement "next" piece for the now-active player (whose next was just consumed/spawned).
@@ -240,6 +342,7 @@ function doLock(state: GameState): GameState {
     lastClear,
     clearedRows: clearedRowIndices,
     stats,
+    piecesRemaining,
     isBonusTurn: false,
   };
 }
@@ -293,14 +396,30 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'LOCK': {
       if (!state.isGrounded) return state; // safety check
-      return doLock(state);
+      // Five-minute mode: if time expired, lock the current piece and end the game
+      const locked = doLock(state);
+      if (state.gameMode === 'fivemin' && state.gameStartTime &&
+          Date.now() - state.gameStartTime >= 5 * 60 * 1000 &&
+          locked.phase !== 'ended') {
+        return resolveEnd(locked, locked.board, locked.scores);
+      }
+      return locked;
+    }
+
+    case 'TIMER_END': {
+      // Five-minute mode: lock current piece if grounded and end the game
+      if (state.isGrounded) {
+        const locked = doLock(state);
+        return resolveEnd(locked, locked.board, locked.scores);
+      }
+      return resolveEnd(state, state.board, state.scores);
     }
   }
 }
 
 // ── Initial state ─────────────────────────────────────────────────────────────
 
-export function createInitialState(): GameState {
+export function createInitialState(gameMode: GameMode = 'classic'): GameState {
   const bag = generateBag(50);
   // bag[0] = P1's first piece (current)
   // bag[1] = P2's next preview
@@ -326,6 +445,9 @@ export function createInitialState(): GameState {
     clearedRows: [],
     stats: [emptyStats(), emptyStats()],
     isBonusTurn: false,
+    gameMode,
+    ...(gameMode === 'hundred' ? { piecesRemaining: [100, 100] as [number, number] } : {}),
+    ...(gameMode === 'fivemin' ? { gameStartTime: Date.now() } : {}),
   };
 }
 
@@ -333,7 +455,8 @@ export function createInitialState(): GameState {
 
 export function computeDisplayBoard(state: GameState): Board {
   const display: CellValue[][] = state.board.map(row => [...row] as CellValue[]);
-  const { ROWS: R, COLS: C } = CONFIG;
+  const R = state.board.length;
+  const C = CONFIG.COLS;
 
   // Ghost
   const gRow = ghostRow(state.piece, state.board);

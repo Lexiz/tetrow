@@ -86,8 +86,9 @@ export function useTouchInput(
         lastMoveX += (dx > 0 ? 1 : -1) * moves * MOVE_STEP;
       }
 
-      // Vertical drag down → soft drop (only if slow enough, not a hard drop swipe)
-      if (!hardDropLocked && dy > SOFT_DROP_STEP) {
+      // Vertical drag down → soft drop (always allowed during downward drag;
+      // hard drop is detected separately on touchEnd based on speed)
+      if (dy > SOFT_DROP_STEP) {
         const drops = Math.floor(dy / SOFT_DROP_STEP);
         for (let i = 0; i < drops; i++) {
           fire('softDrop');

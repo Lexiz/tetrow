@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import type { TetrominoType } from '../../../shared/types';
+import type { TetrominoType, GameMode } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import { getShape } from '../../../shared/game/pieces';
 import BoardComponent from '../common/Board';
@@ -20,14 +20,38 @@ const HIDDEN_NEXT: [number, number][] = [];
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) => void;
   aiDifficulty?: AiDifficulty;
+  gameMode?: GameMode;
   onQuit?: () => void;
 }
 
-export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
+export default function GameScreen({ onGameEnd, aiDifficulty, gameMode, onQuit }: Props) {
   const [showPause, setShowPause] = useState(false);
   const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next } = useGameEngine(
-    aiDifficulty ? { aiPlayer: 2, aiDifficulty } : undefined,
+    aiDifficulty ? { aiPlayer: 2, aiDifficulty, gameMode } : { gameMode },
   );
+
+  // Live timer for five-minute mode
+  const [timeRemaining, setTimeRemaining] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (gameMode !== 'fivemin' || !state.gameStartTime || state.phase === 'ended') return;
+    function tick() {
+      const elapsed = Date.now() - state.gameStartTime!;
+      const remaining = Math.max(0, 5 * 60 * 1000 - elapsed);
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setTimeRemaining(`${mins}:${secs.toString().padStart(2, '0')}`);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [gameMode, state.gameStartTime, state.phase]);
+
+  // Compute dynamic cell size for hundred mode (board may grow)
+  const boardRows = displayBoard.length;
+  const baseBoardHeight = CONFIG.ROWS * CONFIG.CELL_SIZE;
+  const cellSize = boardRows > CONFIG.ROWS
+    ? Math.floor(baseBoardHeight / boardRows)
+    : CONFIG.CELL_SIZE;
 
   // Notify parent when game ends
   if (state.phase === 'ended' && state.winner !== undefined) {
@@ -50,6 +74,8 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
           bandIndex={p1BandIdx}
           nextPiece={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT}
           active={state.active === 1 && !ended}
+          piecesRemaining={state.piecesRemaining?.[0]}
+          timeRemaining={timeRemaining}
         />
         <Divider activePlayer={ended ? 1 : state.active} />
 
@@ -58,7 +84,7 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
             TETROW
           </div>
           <div style={{ position: 'relative' }}>
-            <BoardComponent board={displayBoard} />
+            <BoardComponent board={displayBoard} cellSize={cellSize} />
             {state.lastClear && (
               <ScorePopup
                 key={state.lastClear.id}
@@ -143,6 +169,8 @@ export default function GameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
           bandIndex={p2BandIdx}
           nextPiece={nextCells(state.p2Next)}
           active={state.active === 2 && !ended}
+          piecesRemaining={state.piecesRemaining?.[1]}
+          timeRemaining={timeRemaining}
         />
       </div>
 

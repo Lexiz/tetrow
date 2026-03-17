@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { AiDifficulty } from '../shared/game/ai';
 import type { PlayerStats } from '../shared/game/engine';
-import type { Owner } from '../shared/types';
+import type { Owner, GameMode } from '../shared/types';
 import { C } from '../shared/theme';
 import { useAuth } from './src/hooks/useAuth';
 import { useMultiplayer } from './src/hooks/useMultiplayer';
@@ -37,6 +37,7 @@ export default function App() {
   const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
   const [screen, setScreen] = useState<Screen>('login');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('medium');
+  const [practiceGameMode, setPracticeGameMode] = useState<GameMode>('classic');
   const [practiceStartTime, setPracticeStartTime] = useState<number>(0);
   const [endData, setEndData] = useState<EndData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -153,7 +154,7 @@ export default function App() {
         {screen === 'difficulty' && (
           <DifficultyScreen
             userId={user?.uid ?? ''}
-            onSelect={(d) => { setDifficulty(d); setPracticeStartTime(Date.now()); setScreen('game'); }}
+            onSelect={(d, mode) => { setDifficulty(d); setPracticeGameMode(mode ?? 'classic'); setPracticeStartTime(Date.now()); setScreen('game'); }}
             onBack={() => setScreen('menu')}
           />
         )}

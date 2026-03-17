@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
 import type { AiDifficulty } from '../../../shared/game/ai';
+import type { GameMode } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import { getPracticeHistory, type PracticeRecord } from '../firestore';
 
@@ -10,9 +11,15 @@ const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
 
 type Tab = 'play' | 'history';
 
+const GAME_MODES: { key: GameMode; label: string; icon: string; desc: string }[] = [
+  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. First to top out loses. Speed increases with score.' },
+  { key: 'hundred', label: '100', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling — the board grows upward. Most points wins.' },
+  { key: 'fivemin', label: '5 MIN', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
+];
+
 interface Props {
   userId: string;
-  onSelect: (difficulty: AiDifficulty) => void;
+  onSelect: (difficulty: AiDifficulty, mode?: GameMode) => void;
   onBack: () => void;
   isMobile?: boolean;
 }
@@ -86,6 +93,8 @@ const difficulties: { key: AiDifficulty; label: string; desc: string; Icon: () =
 
 export default function WarmUpScreen({ userId, onSelect, onBack, isMobile }: Props) {
   const [tab, setTab] = useState<Tab>('play');
+  const [gameMode, setGameMode] = useState<GameMode>('classic');
+  const [showModeInfo, setShowModeInfo] = useState<GameMode | null>(null);
 
   return (
     <div style={{
@@ -153,8 +162,54 @@ export default function WarmUpScreen({ userId, onSelect, onBack, isMobile }: Pro
           gap: 14, width: '100%',
           maxWidth: 380, boxSizing: 'border-box',
         }}>
+          {/* Game mode toggles */}
+          <div style={{
+            display: 'flex', gap: 8, width: '100%',
+          }}>
+            {GAME_MODES.map(({ key, label, icon }) => (
+              <button key={key} onClick={() => setGameMode(key)} style={{
+                flex: 1, padding: '10px 4px',
+                background: gameMode === key ? `${C.p1}22` : '#080812',
+                border: `1.5px solid ${gameMode === key ? C.p1 : C.border}`,
+                borderRadius: 6, cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                position: 'relative',
+              }}>
+                <span style={{ fontSize: 16 }}>{icon}</span>
+                <span style={{
+                  fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
+                  letterSpacing: 1, color: gameMode === key ? C.p1 : C.text,
+                }}>{label}</span>
+                {/* Info icon */}
+                <span
+                  onClick={(e) => { e.stopPropagation(); setShowModeInfo(showModeInfo === key ? null : key); }}
+                  style={{
+                    position: 'absolute', top: 4, right: 4,
+                    fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
+                    color: C.text, opacity: 0.5, cursor: 'pointer',
+                    width: 14, height: 14, borderRadius: '50%',
+                    border: `1px solid ${C.text}44`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                >?</span>
+              </button>
+            ))}
+          </div>
+          {/* Mode info tooltip */}
+          {showModeInfo && (
+            <div style={{
+              padding: '10px 14px',
+              background: '#080812',
+              border: `1px solid ${C.border}`,
+              borderRadius: 6,
+              fontFamily: 'monospace', fontSize: 9, color: C.text,
+              lineHeight: 1.6,
+            }}>{GAME_MODES.find(m => m.key === showModeInfo)?.desc}</div>
+          )}
+          {/* Difficulty buttons */}
           {difficulties.map(({ key, label, desc, Icon }) => (
-            <button key={key} onClick={() => onSelect(key)} style={{
+            <button key={key} onClick={() => onSelect(key, gameMode)} style={{
               padding: '20px 24px',
               background: '#080812',
               border: `2px solid ${C.p1}66`,

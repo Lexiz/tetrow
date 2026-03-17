@@ -3,14 +3,21 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AiDifficulty } from '../../../shared/game/ai';
 import type { PlayerStats } from '../../../shared/game/engine';
+import type { GameMode } from '../../../shared/types';
 import { C } from '../../../shared/theme';
 import { getPracticeHistory, type PracticeRecord } from '../firestore';
 
 type Tab = 'play' | 'history';
 
+const GAME_MODES: { key: GameMode; label: string; icon: string; desc: string }[] = [
+  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. First to top out loses. Speed increases with score.' },
+  { key: 'hundred', label: '100', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling \u2014 the board grows upward. Most points wins.' },
+  { key: 'fivemin', label: '5 MIN', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
+];
+
 interface Props {
   userId: string;
-  onSelect: (difficulty: AiDifficulty) => void;
+  onSelect: (difficulty: AiDifficulty, mode?: GameMode) => void;
   onBack: () => void;
 }
 
@@ -83,6 +90,8 @@ const difficulties: { key: AiDifficulty; label: string; desc: string }[] = [
 export default function DifficultyScreen({ userId, onSelect, onBack }: Props) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('play');
+  const [gameMode, setGameMode] = useState<GameMode>('classic');
+  const [showModeInfo, setShowModeInfo] = useState<GameMode | null>(null);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 60, paddingBottom: insets.bottom }]}>
@@ -117,12 +126,56 @@ export default function DifficultyScreen({ userId, onSelect, onBack }: Props) {
       {/* Tab content */}
       {tab === 'play' ? (
         <View style={styles.buttons}>
+          {/* Game mode toggles */}
+          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+            {GAME_MODES.map(({ key, label, icon }) => (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setGameMode(key)}
+                style={{
+                  flex: 1, padding: 10, alignItems: 'center', gap: 4,
+                  backgroundColor: gameMode === key ? C.p1 + '22' : '#080812',
+                  borderWidth: 1.5,
+                  borderColor: gameMode === key ? C.p1 : C.border,
+                  borderRadius: 6, position: 'relative' as const,
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>{icon}</Text>
+                <Text style={{
+                  fontFamily: 'Courier', fontSize: 9, fontWeight: '900',
+                  letterSpacing: 1, color: gameMode === key ? C.p1 : C.text,
+                }}>{label}</Text>
+                <TouchableOpacity
+                  onPress={() => setShowModeInfo(showModeInfo === key ? null : key)}
+                  style={{
+                    position: 'absolute', top: 4, right: 4,
+                    width: 14, height: 14, borderRadius: 7,
+                    borderWidth: 1, borderColor: C.text + '44',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ fontFamily: 'Courier', fontSize: 9, fontWeight: '900', color: C.text, opacity: 0.5 }}>?</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {showModeInfo && (
+            <View style={{
+              padding: 10, backgroundColor: '#080812',
+              borderWidth: 1, borderColor: C.border, borderRadius: 6,
+            }}>
+              <Text style={{ fontFamily: 'Courier', fontSize: 9, color: C.text, lineHeight: 16 }}>
+                {GAME_MODES.find(m => m.key === showModeInfo)?.desc}
+              </Text>
+            </View>
+          )}
+          {/* Difficulty buttons */}
           {difficulties.map(({ key, label, desc }) => {
             const Icon = iconMap[key];
             return (
               <TouchableOpacity
                 key={key}
-                onPress={() => onSelect(key)}
+                onPress={() => onSelect(key, gameMode)}
                 style={styles.diffButton}
               >
                 <View style={styles.diffInner}>

@@ -8,3 +8,5 @@ export type Board = CellValue[][];
 export type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
 
 export type Screen = 'login' | 'menu' | 'start' | 'game' | 'warmup-select' | 'warmup' | 'ranked' | 'match-confirm' | 'ranked-game' | 'end' | 'terms' | 'privacy';
+
+export type GameMode = 'classic' | 'hundred' | 'fivemin';

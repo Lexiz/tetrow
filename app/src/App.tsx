@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { C } from '../../shared/theme';
 import { APP_VERSION } from '../../shared/version';
-import type { Screen, Owner } from '../../shared/types';
+import type { Screen, Owner, GameMode } from '../../shared/types';
 import type { PlayerStats } from '../../shared/game/engine';
 import type { AiDifficulty } from '../../shared/game/ai';
 import MonitorGameScreen from './monitor/GameScreen';
@@ -41,6 +41,7 @@ export default function App() {
   const [screen, setScreenRaw] = useState<Screen>('login');
   const [result, setResult] = useState<MatchResult>({ p1Score: 0, p2Score: 0, toppedOut: [false, false], stats: [emptyStats, emptyStats] });
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty | null>(null);
+  const [practiceGameMode, setPracticeGameMode] = useState<GameMode>('classic');
   const [practiceStartTime, setPracticeStartTime] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
@@ -175,8 +176,9 @@ export default function App() {
     }
   }
 
-  function handleSelectDifficulty(difficulty: AiDifficulty) {
+  function handleSelectDifficulty(difficulty: AiDifficulty, mode: GameMode = 'classic') {
     setAiDifficulty(difficulty);
+    setPracticeGameMode(mode);
     setPracticeStartTime(Date.now());
     setScreen('warmup');
   }
@@ -292,8 +294,8 @@ export default function App() {
         {currentScreen === 'start' && <StartScreen onStart={() => setScreen('game')} isMobile={mobile} />}
         {(currentScreen === 'game' || currentScreen === 'warmup') && (
           mobile
-            ? <MobileGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} onQuit={handleBackToMenu} />
-            : <MonitorGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} onQuit={handleBackToMenu} />
+            ? <MobileGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} gameMode={currentScreen === 'warmup' ? practiceGameMode : undefined} onQuit={handleBackToMenu} />
+            : <MonitorGameScreen onGameEnd={handleGameEnd} aiDifficulty={gameAiDifficulty} gameMode={currentScreen === 'warmup' ? practiceGameMode : undefined} onQuit={handleBackToMenu} />
         )}
         {currentScreen === 'ranked-game' && mp.myPlayer && (() => {
           const myName = user?.displayName || 'Player';
