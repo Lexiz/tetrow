@@ -105,8 +105,8 @@ function handleTopOut(
   toppedPlayer: Owner,
   p2HasPlaced: boolean,
 ): GameState {
-  // Hundred mode: no top-out, extend the board upward instead
-  if (state.gameMode === 'hundred') {
+  // Hundred/fivemin mode: no top-out, extend the board upward instead
+  if (state.gameMode === 'hundred' || state.gameMode === 'fivemin') {
     return extendBoardAndSpawn(state, board, scores, p2HasPlaced);
   }
 
@@ -311,6 +311,18 @@ function doLock(state: GameState): GameState {
     }
   }
 
+  // Proactively extend the board if pieces are near the top (hundred/fivemin modes)
+  if (state.gameMode !== 'classic') {
+    let highestRow = board.length;
+    for (let r = 0; r < board.length; r++) {
+      if (board[r]!.some(c => c !== null)) { highestRow = r; break; }
+    }
+    // If highest settled piece is within 4 rows of the top, add breathing room
+    if (highestRow < 4) {
+      board = extendBoard(board, 6);
+    }
+  }
+
   const nextType = nextActive === 1 ? state.p1Next : state.p2Next;
   const nextPiece = spawnPiece(nextType);
 
@@ -481,6 +493,49 @@ export function computeDisplayBoard(state: GameState): Board {
   }
 
   return display;
+}
+
+/**
+ * For modes with growing boards (hundred, fivemin), extract a CONFIG.ROWS-sized
+ * viewport from the full display board. The viewport auto-scrolls so the highest
+ * occupied row sits roughly 40% down the viewport, giving space above to maneuver.
+ * Returns { viewport, offset } where offset is the first row index shown.
+ */
+export function getViewport(displayBoard: Board, state: GameState): { viewport: Board; offset: number } {
+  const totalRows = displayBoard.length;
+  const viewRows = CONFIG.ROWS;
+
+  // Board fits in viewport — no scrolling needed
+  if (totalRows <= viewRows) {
+    return { viewport: displayBoard, offset: 0 };
+  }
+
+  // Find the highest occupied row (smallest index with any content)
+  let highestOccupied = totalRows;
+  for (let r = 0; r < totalRows; r++) {
+    if (displayBoard[r]!.some(cell => cell !== null)) {
+      highestOccupied = r;
+      break;
+    }
+  }
+
+  // Also consider the active piece position (it may be above settled pieces)
+  const pieceTop = Math.min(
+    ...getShape(state.piece.type, state.piece.rot).map(([, dr]) => state.piece.row + dr),
+  );
+  const topOfAction = Math.min(highestOccupied, pieceTop);
+
+  // Position viewport so topOfAction sits ~40% down (row 8 of 20)
+  // This leaves ~8 rows of breathing room above
+  const targetViewRow = Math.floor(viewRows * 0.4);
+  let offset = topOfAction - targetViewRow;
+
+  // Clamp: don't go above the board, and ensure we show at least viewRows
+  offset = Math.max(0, offset);
+  offset = Math.min(offset, totalRows - viewRows);
+
+  const viewport = displayBoard.slice(offset, offset + viewRows);
+  return { viewport, offset };
 }
 
 export function getBandIndex(score: number): number {

@@ -46,13 +46,6 @@ export default function GameScreen({ onGameEnd, aiDifficulty, gameMode, onQuit }
     return () => clearInterval(id);
   }, [gameMode, state.gameStartTime, state.phase]);
 
-  // Compute dynamic cell size for hundred mode (board may grow)
-  const boardRows = displayBoard.length;
-  const baseBoardHeight = CONFIG.ROWS * CONFIG.CELL_SIZE;
-  const cellSize = boardRows > CONFIG.ROWS
-    ? Math.floor(baseBoardHeight / boardRows)
-    : CONFIG.CELL_SIZE;
-
   // Notify parent when game ends
   if (state.phase === 'ended' && state.winner !== undefined) {
     // Use a ref to avoid calling during render — trigger via effect in parent
@@ -84,7 +77,7 @@ export default function GameScreen({ onGameEnd, aiDifficulty, gameMode, onQuit }
             TETROW
           </div>
           <div style={{ position: 'relative' }}>
-            <BoardComponent board={displayBoard} cellSize={cellSize} />
+            <BoardComponent board={displayBoard} />
             {state.lastClear && (
               <ScorePopup
                 key={state.lastClear.id}
