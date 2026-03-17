@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
-import type { Owner } from '../../../shared/types';
+import type { Owner, GameMode } from '../../../shared/types';
 import {
   gameReducer,
   createInitialState,
@@ -14,12 +14,14 @@ import { useInput } from './useInput';
 interface EngineOptions {
   aiPlayer?: Owner;          // which player the AI controls (2 for warm-up)
   aiDifficulty?: AiDifficulty;
+  gameMode?: GameMode;
 }
 
 export function useGameEngine(options?: EngineOptions) {
   const aiPlayer = options?.aiPlayer;
   const aiDifficulty = options?.aiDifficulty ?? 'medium';
-  const [state, dispatch] = useReducer(gameReducer, undefined, createInitialState);
+  const gameMode = options?.gameMode ?? 'classic';
+  const [state, dispatch] = useReducer(gameReducer, gameMode, createInitialState);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -81,6 +83,20 @@ export function useGameEngine(options?: EngineOptions) {
       }, 500);
     }
   }, [state.lockResets]);
+
+  // ── Five-minute timer ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (gameMode !== 'fivemin' || state.phase === 'ended' || !state.gameStartTime) return;
+    const remaining = 5 * 60 * 1000 - (Date.now() - state.gameStartTime);
+    if (remaining <= 0) {
+      dispatch({ type: 'TIMER_END' });
+      return;
+    }
+    const id = setTimeout(() => {
+      dispatch({ type: 'TIMER_END' });
+    }, remaining);
+    return () => clearTimeout(id);
+  }, [gameMode, state.phase, state.gameStartTime]);
 
   // ── Input handling ────────────────────────────────────────────────────────
   const handleAction = useCallback((player: Owner, action: string) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { C } from '../../../shared/theme';
 import { CONFIG } from '../../../shared/config';
-import type { TetrominoType, Owner } from '../../../shared/types';
+import type { TetrominoType, Owner, GameMode } from '../../../shared/types';
 import type { PlayerStats } from '../../../shared/game/engine';
 import { getShape } from '../../../shared/game/pieces';
 import BoardComponent from '../common/Board';
@@ -20,6 +20,7 @@ const BAR_HEIGHT = 64;
 interface Props {
   onGameEnd: (p1Score: number, p2Score: number, toppedOut: [boolean, boolean], stats: [PlayerStats, PlayerStats]) => void;
   aiDifficulty?: AiDifficulty;
+  gameMode?: GameMode;
   onQuit?: () => void;
 }
 
@@ -51,9 +52,9 @@ function useMobileCellSize(): number {
   return size;
 }
 
-export default function MobileGameScreen({ onGameEnd, aiDifficulty, onQuit }: Props) {
+export default function MobileGameScreen({ onGameEnd, aiDifficulty, gameMode, onQuit }: Props) {
   const { state, displayBoard, p1BandIdx, p2BandIdx, showP1Next, handleAction } = useGameEngine(
-    aiDifficulty ? { aiPlayer: 2, aiDifficulty } : undefined,
+    aiDifficulty ? { aiPlayer: 2, aiDifficulty, gameMode } : { gameMode },
   );
   const cellSize = useMobileCellSize();
   const boardRef = useRef<HTMLDivElement>(null);

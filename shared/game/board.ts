@@ -23,8 +23,9 @@ export function getCells(piece: PieceState): Cell[] {
 }
 
 export function isValid(piece: PieceState, board: SettledBoard): boolean {
+  const rows = board.length;
   for (const [c, r] of getCells(piece)) {
-    if (c < 0 || c >= COLS || r >= ROWS) return false;
+    if (c < 0 || c >= COLS || r >= rows) return false;
     if (r >= 0 && board[r]![c] !== null) return false;
     // r < 0 is fine — piece partially above the visible board
   }
@@ -57,9 +58,10 @@ export function tryRotate(piece: PieceState, board: SettledBoard, cw: boolean): 
 }
 
 export function lockPiece(piece: PieceState, board: SettledBoard, owner: Owner): SettledBoard {
+  const rows = board.length;
   const next = board.map(row => [...row]) as SettledBoard;
   for (const [c, r] of getCells(piece)) {
-    if (r >= 0 && r < ROWS) next[r]![c] = owner;
+    if (r >= 0 && r < rows) next[r]![c] = owner;
   }
   return next;
 }
@@ -69,6 +71,12 @@ export interface ClearResult {
   linesCleared: number;
   opponentCellsCleared: number;
   clearedRowIndices: number[];
+}
+
+/** Extend the board upward by adding empty rows at the top. Used in hundred mode. */
+export function extendBoard(board: SettledBoard, extraRows: number): SettledBoard {
+  const newRows: SettledBoard = Array.from({ length: extraRows }, () => new Array<Owner | null>(COLS).fill(null));
+  return [...newRows, ...board];
 }
 
 export function clearLines(board: SettledBoard, scorer: Owner): ClearResult {
@@ -87,6 +95,7 @@ export function clearLines(board: SettledBoard, scorer: Owner): ClearResult {
     return !full;
   });
 
-  while (kept.length < ROWS) kept.unshift(new Array<Owner | null>(COLS).fill(null));
+  const targetRows = board.length; // maintain current board height (may be > ROWS in hundred mode)
+  while (kept.length < targetRows) kept.unshift(new Array<Owner | null>(COLS).fill(null));
   return { board: kept as SettledBoard, linesCleared, opponentCellsCleared, clearedRowIndices };
 }
