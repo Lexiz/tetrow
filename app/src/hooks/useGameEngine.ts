@@ -164,9 +164,8 @@ export function useGameEngine(options?: EngineOptions) {
   // ── Derived display values ────────────────────────────────────────────────
   const fullDisplayBoard = state.phase !== 'ended' ? computeDisplayBoard(state) : state.board;
 
-  // For growing boards, extract a viewport; for classic, use the full board
-  const needsViewport = state.gameMode !== 'classic' && fullDisplayBoard.length > CONFIG.ROWS;
-  const { viewport, offset: viewportOffset } = needsViewport
+  // For non-classic modes, always use a viewport to ensure exactly CONFIG.ROWS are rendered
+  const { viewport, offset: viewportOffset } = fullDisplayBoard.length > CONFIG.ROWS
     ? getViewport(fullDisplayBoard, state)
     : { viewport: fullDisplayBoard, offset: 0 };
 
