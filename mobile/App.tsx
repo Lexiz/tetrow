@@ -168,7 +168,7 @@ export default function App() {
               if (user) {
                 const durationMs = Date.now() - practiceStartTime;
                 const winner = p1Score > p2Score ? 1 : p2Score > p1Score ? 2 : null;
-                savePracticeResult(user.uid, difficulty, p1Score, p2Score, winner as any, durationMs, stats)
+                savePracticeResult(user.uid, difficulty, p1Score, p2Score, winner as any, durationMs, stats, practiceGameMode)
                   .catch(err => console.error('Failed to save practice result:', err));
               }
             }}

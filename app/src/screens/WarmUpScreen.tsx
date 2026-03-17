@@ -12,9 +12,9 @@ const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
 type Tab = 'play' | 'history';
 
 const GAME_MODES: { key: GameMode; label: string; icon: string; desc: string }[] = [
-  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. First to top out loses. Speed increases with score.' },
-  { key: 'hundred', label: '100', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling — the board grows upward. Most points wins.' },
-  { key: 'fivemin', label: '5 MIN', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
+  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. Reaching the ceiling ends the game. Most points wins. Speed increases with score.' },
+  { key: 'hundred', label: '100 PIECES', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling — the board grows upward. Most points wins.' },
+  { key: 'fivemin', label: '5 MINUTES', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
 ];
 
 interface Props {
@@ -134,6 +134,10 @@ export default function WarmUpScreen({ userId, onSelect, onBack, isMobile }: Pro
           letterSpacing: 2, color: C.p1,
           textShadow: `0 0 20px ${C.p1}44`,
         }}>PRACTICE</div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 9, color: C.text, opacity: 0.7,
+          marginTop: 8, lineHeight: 1.6, maxWidth: 340,
+        }}>Sharpen your Tetrow skills against AI. Choose from three game modes and three difficulty levels.</div>
       </div>
 
       {/* Tabs */}
@@ -285,13 +289,14 @@ function PracticeHistoryTab({ userId }: { userId: string }) {
         const resultColor = won ? '#22cc44' : lost ? '#ff4466' : C.text;
         const diffLabel = r.difficulty.toUpperCase();
         const diffColor = r.difficulty === 'easy' ? '#22cc44' : r.difficulty === 'medium' ? '#ffaa22' : '#ff4466';
+        const modeLabel = r.gameMode === 'hundred' ? '100P' : r.gameMode === 'fivemin' ? '5MIN' : 'CLS';
 
         return (
           <div key={rowId}>
             <div
               onClick={() => setExpandedId(isExpanded ? null : rowId)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 8,
+                display: 'flex', alignItems: 'center', gap: 6,
                 padding: '6px 8px', borderRadius: 4,
                 background: won ? '#22cc4408' : lost ? '#ff446608' : 'transparent',
                 cursor: 'pointer',
@@ -308,8 +313,12 @@ function PracticeHistoryTab({ userId }: { userId: string }) {
                 color: resultColor, width: 32,
               }}>{resultText}</span>
               <span style={{
+                fontFamily: 'monospace', fontSize: 7, fontWeight: 700,
+                color: C.text, opacity: 0.6, width: 28,
+              }}>{modeLabel}</span>
+              <span style={{
                 fontFamily: 'monospace', fontSize: 8, fontWeight: 700,
-                color: diffColor, width: 48,
+                color: diffColor, width: 44,
               }}>{diffLabel}</span>
               <span style={{
                 fontFamily: 'monospace', fontSize: 9, color: C.white,

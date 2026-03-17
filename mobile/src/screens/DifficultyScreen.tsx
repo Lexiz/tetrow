@@ -10,9 +10,9 @@ import { getPracticeHistory, type PracticeRecord } from '../firestore';
 type Tab = 'play' | 'history';
 
 const GAME_MODES: { key: GameMode; label: string; icon: string; desc: string }[] = [
-  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. First to top out loses. Speed increases with score.' },
-  { key: 'hundred', label: '100', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling \u2014 the board grows upward. Most points wins.' },
-  { key: 'fivemin', label: '5 MIN', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
+  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. Reaching the ceiling ends the game. Most points wins. Speed increases with score.' },
+  { key: 'hundred', label: '100 PIECES', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling \u2014 the board grows upward. Most points wins.' },
+  { key: 'fivemin', label: '5 MINUTES', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
 ];
 
 interface Props {
@@ -106,6 +106,10 @@ export default function DifficultyScreen({ userId, onSelect, onBack }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>PRACTICE</Text>
+        <Text style={{
+          fontFamily: 'Courier', fontSize: 9, color: C.text, opacity: 0.7,
+          marginTop: 8, lineHeight: 16, textAlign: 'center', maxWidth: 300,
+        }}>Sharpen your Tetrow skills against AI. Choose from three game modes and three difficulty levels.</Text>
       </View>
 
       {/* Tabs */}
@@ -226,6 +230,7 @@ function PracticeHistoryTab({ userId }: { userId: string }) {
         const resultColor = won ? '#22cc44' : lost ? '#ff4466' : C.text;
         const diffLabel = r.difficulty.toUpperCase();
         const diffColor = r.difficulty === 'easy' ? '#22cc44' : r.difficulty === 'medium' ? '#ffaa22' : '#ff4466';
+        const modeLabel = r.gameMode === 'hundred' ? '100P' : r.gameMode === 'fivemin' ? '5MIN' : 'CLS';
 
         return (
           <View key={rowId}>
@@ -240,6 +245,7 @@ function PracticeHistoryTab({ userId }: { userId: string }) {
                 {isExpanded ? '\u25BC' : '\u25B6'}
               </Text>
               <Text style={[styles.historyResult, { color: resultColor }]}>{resultText}</Text>
+              <Text style={{ fontFamily: 'Courier', fontSize: 7, fontWeight: '700', color: C.text, opacity: 0.6, width: 28 }}>{modeLabel}</Text>
               <Text style={[styles.historyDiff, { color: diffColor }]}>{diffLabel}</Text>
               <Text style={styles.historyScore}>{r.myScore}-{r.aiScore}</Text>
               <Text style={styles.historyDuration}>{formatDuration(r.durationMs)}</Text>

@@ -212,6 +212,7 @@ export interface PracticeRecord {
   id?: string;
   userId: string;
   difficulty: 'easy' | 'medium' | 'hard';
+  gameMode?: 'classic' | 'hundred' | 'fivemin';
   myScore: number;
   aiScore: number;
   winner: Owner | null;  // 1 = player won, 2 = AI won, null = draw
@@ -229,10 +230,12 @@ export async function savePracticeResult(
   winner: Owner | null,
   durationMs: number,
   stats: [PlayerStats, PlayerStats],
+  gameMode?: 'classic' | 'hundred' | 'fivemin',
 ): Promise<void> {
   const record: Omit<PracticeRecord, 'id'> = {
     userId,
     difficulty,
+    ...(gameMode ? { gameMode } : {}),
     myScore,
     aiScore,
     winner,
