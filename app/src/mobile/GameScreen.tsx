@@ -65,6 +65,22 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, gameMode, on
   const p1Active = state.active === 1 && !ended;
   const p2Active = state.active === 2 && !ended;
 
+  // Live timer for five-minute mode
+  const [timeRemaining, setTimeRemaining] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (gameMode !== 'fivemin' || !state.gameStartTime || state.phase === 'ended') return;
+    function tick() {
+      const elapsed = Date.now() - state.gameStartTime!;
+      const remaining = Math.max(0, 5 * 60 * 1000 - elapsed);
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setTimeRemaining(`${mins}:${secs.toString().padStart(2, '0')}`);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [gameMode, state.gameStartTime, state.phase]);
+
   return (
     <div style={{
       display: 'flex',
@@ -166,6 +182,8 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, gameMode, on
           bandIndex={p1BandIdx}
           active={p1Active}
           nextPiece={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT}
+          piecesRemaining={state.piecesRemaining?.[0]}
+          timeRemaining={timeRemaining}
         />
 
         {/* Pause button */}
@@ -188,6 +206,8 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, gameMode, on
           bandIndex={p2BandIdx}
           active={p2Active}
           nextPiece={nextCells(state.p2Next)}
+          piecesRemaining={state.piecesRemaining?.[1]}
+          timeRemaining={timeRemaining}
         />
       </div>
 
@@ -231,9 +251,11 @@ interface PlayerHalfProps {
   bandIndex: number;
   active: boolean;
   nextPiece: [number, number][];
+  piecesRemaining?: number;
+  timeRemaining?: string;
 }
 
-function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, active, nextPiece, piecesRemaining, timeRemaining }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
   const scoreSpeedItem = (
@@ -256,6 +278,31 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfP
         fontSize: 11, fontWeight: 900, color: col,
         textShadow: `0 0 6px ${col}66`,
       }}>{bandIndex + 1}/7</span>
+      {piecesRemaining !== undefined && (
+        <>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
+            color: C.white, opacity: 0.5, marginTop: 1,
+          }}>LEFT</span>
+          <span style={{
+            fontFamily: "'Courier New', monospace",
+            fontSize: 11, fontWeight: 900,
+            color: piecesRemaining <= 10 ? '#ff4466' : C.white,
+          }}>{piecesRemaining}</span>
+        </>
+      )}
+      {timeRemaining !== undefined && (
+        <>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
+            color: C.white, opacity: 0.5, marginTop: 1,
+          }}>TIME</span>
+          <span style={{
+            fontFamily: "'Courier New', monospace",
+            fontSize: 11, fontWeight: 900, color: C.white,
+          }}>{timeRemaining}</span>
+        </>
+      )}
     </div>
   );
 
