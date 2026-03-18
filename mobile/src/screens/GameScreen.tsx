@@ -129,10 +129,10 @@ export default function GameScreen({ aiDifficulty, gameMode, onGameEnd, onQuit }
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 8, gap: gameMode === 'blind' ? 4 : 6 }]}>
         {gameMode === 'blind' ? (
           <>
-            {/* Blind: P1 (player) wide box with 1ST/2ND pieces horizontal */}
+            {/* Blind: P1 (player) wide box — Score/Speed, 2ND (dim), 1ST (highlighted) */}
             <View style={[
               styles.playerBox,
-              { flex: 1, borderColor: C.p1 + 'cc', justifyContent: 'center' },
+              { flex: 3, borderColor: C.p1 + 'cc', justifyContent: 'center', gap: 10 },
               p1Active && styles.playerBoxGlow,
             ]}>
               <View style={styles.scoreSpeedStack}>
@@ -141,24 +141,24 @@ export default function GameScreen({ aiDifficulty, gameMode, onGameEnd, onQuit }
                 <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
                 <Text style={[styles.statValueSpeedSmall, { color: C.p1 }]}>{p1BandIdx + 1}/7</Text>
               </View>
-              <View style={styles.nextItemSmall}>
-                <Text style={styles.statLabelSmall}>1ST</Text>
-                <View style={styles.miniPieceSmall}>
-                  <MiniPiece cells={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT} player={1} />
-                </View>
-              </View>
               {state.p1Next2 && (
-                <View style={styles.nextItemSmall}>
-                  <Text style={styles.statLabelSmall}>2ND</Text>
-                  <View style={styles.miniPieceSmall}>
+                <View style={[styles.nextItemSmall, { opacity: 0.5 }]}>
+                  <Text style={[styles.statLabelSmall, { opacity: 0.7 }]}>2ND</Text>
+                  <View style={[styles.miniPieceSmall, { transform: [{ scale: 0.6 }] }]}>
                     <MiniPiece cells={nextCells(state.p1Next2)} player={1} />
                   </View>
                 </View>
               )}
+              <View style={[styles.nextItemSmall, { backgroundColor: C.p1 + '18', borderWidth: 1, borderColor: C.p1 + '44', borderRadius: 4, padding: 2 }]}>
+                <Text style={[styles.statLabelSmall, { color: C.p1, fontWeight: '900', fontSize: 6 }]}>1ST</Text>
+                <View style={[styles.miniPieceSmall, { transform: [{ scale: 0.7 }] }]}>
+                  <MiniPiece cells={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT} player={1} />
+                </View>
+              </View>
             </View>
             {/* Blind: P2 (opponent) compact box — score/speed only */}
             <View style={[
-              { width: 56, flexDirection: 'column', alignItems: 'center', gap: 1, height: BAR_HEIGHT - 12, backgroundColor: C.panel, borderWidth: 1.5, borderColor: p2Active ? C.p2 + '66' : C.border, borderRadius: 6, paddingHorizontal: 4, justifyContent: 'center' },
+              { flex: 1, maxWidth: 80, flexDirection: 'column' as const, alignItems: 'center' as const, gap: 1, height: BAR_HEIGHT - 12, backgroundColor: C.panel, borderWidth: 1.5, borderColor: p2Active ? C.p2 + '66' : C.border, borderRadius: 6, paddingHorizontal: 4, justifyContent: 'center' as const },
               p2Active && styles.playerBoxGlowP2,
             ]}>
               <Text style={styles.statLabelSmall}>SCORE</Text>

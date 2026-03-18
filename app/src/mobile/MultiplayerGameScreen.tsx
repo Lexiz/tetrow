@@ -270,15 +270,16 @@ interface PlayerHalfProps {
 function PlayerHalf({ player, score, bandIndex, active, nextPiece, blindMode, isOpponent, nextPiece2 }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
-  // Blind mode opponent: compact box with just score + speed
+  // Blind mode opponent: compact box, score + speed only
   if (blindMode && isOpponent) {
     return (
       <div style={{
-        flex: 0, flexShrink: 0,
-        width: 60,
+        flex: 1,
+        maxWidth: 80,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 1,
         padding: '4px 6px',
         background: active ? `${col}0c` : C.panel,
@@ -295,16 +296,16 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece, blindMode, is
     );
   }
 
-  // Blind mode player: wide box with score/speed + two pieces horizontal (1ST / 2ND)
+  // Blind mode player: Score/Speed left, 2ND piece, 1ST piece (highlighted) right
   if (blindMode && !isOpponent) {
     return (
       <div style={{
-        flex: 1,
+        flex: 3,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
-        padding: '4px 6px',
+        gap: 10,
+        padding: '4px 8px',
         background: active ? `${col}0c` : C.panel,
         border: `1.5px solid ${col}cc`,
         borderRadius: 6,
@@ -317,20 +318,24 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece, blindMode, is
           <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5, marginTop: 1 }}>SPEED</span>
           <span style={{ fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 900, color: col, textShadow: `0 0 6px ${col}66` }}>{bandIndex + 1}/7</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>1ST</span>
-          <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
-            <MiniPiece cells={nextPiece} player={player} />
-          </div>
-        </div>
         {nextPiece2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>2ND</span>
-            <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.5 }}>
+            <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.7 }}>2ND</span>
+            <div style={{ marginTop: 1, transform: 'scale(0.65)', transformOrigin: 'top center' }}>
               <MiniPiece cells={nextPiece2} player={player} />
             </div>
           </div>
         )}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '2px 4px', borderRadius: 4,
+          background: `${col}18`, border: `1px solid ${col}44`,
+        }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 6, letterSpacing: 1, color: col, fontWeight: 900 }}>1ST</span>
+          <div style={{ marginTop: 1, transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+            <MiniPiece cells={nextPiece} player={player} />
+          </div>
+        </div>
       </div>
     );
   }

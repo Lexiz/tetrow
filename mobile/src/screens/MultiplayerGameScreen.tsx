@@ -141,33 +141,40 @@ export default function MultiplayerGameScreen({
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 8, gap: game.gameMode === 'blind' ? 4 : 6 }]}>
         {game.gameMode === 'blind' ? (
           <>
-            {/* Blind: "my" player wide box with 1ST/2ND horizontal */}
-            <View style={[
-              styles.playerBox,
-              { flex: 1, borderColor: (myPlayer === 1 ? C.p1 : C.p2) + 'cc', justifyContent: 'center' },
-              (myPlayer === 1 ? p1Active : p2Active) && (myPlayer === 1 ? styles.playerBoxGlow : styles.playerBoxGlowP2),
-            ]}>
-              <View style={styles.scoreSpeedStack}>
-                <Text style={styles.statLabelSmall}>SCORE</Text>
-                <Text style={styles.statValueSmall}>{game.scores[myPlayer - 1].toLocaleString()}</Text>
-                <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
-                <Text style={[styles.statValueSpeedSmall, { color: myPlayer === 1 ? C.p1 : C.p2 }]}>{(myPlayer === 1 ? game.p1BandIdx : game.p2BandIdx) + 1}/7</Text>
-              </View>
-              <View style={styles.nextItemSmall}>
-                <Text style={styles.statLabelSmall}>1ST</Text>
-                <View style={styles.miniPieceSmall}>
-                  <MiniPiece cells={myPlayer === 1 ? (game.p1Next.length > 0 ? game.p1Next : HIDDEN_NEXT) : (game.p2Next.length > 0 ? game.p2Next : HIDDEN_NEXT)} player={myPlayer} />
-                </View>
-              </View>
-              {game.myNext2 && (
-                <View style={styles.nextItemSmall}>
-                  <Text style={styles.statLabelSmall}>2ND</Text>
-                  <View style={styles.miniPieceSmall}>
-                    <MiniPiece cells={game.myNext2} player={myPlayer} />
+            {/* Blind: "my" player wide box — Score/Speed, 2ND (dim), 1ST (highlighted) */}
+            {(() => {
+              const myCol = myPlayer === 1 ? C.p1 : C.p2;
+              const myActive = myPlayer === 1 ? p1Active : p2Active;
+              const myNext = myPlayer === 1 ? (game.p1Next.length > 0 ? game.p1Next : HIDDEN_NEXT) : (game.p2Next.length > 0 ? game.p2Next : HIDDEN_NEXT);
+              return (
+                <View style={[
+                  styles.playerBox,
+                  { flex: 3, borderColor: myCol + 'cc', justifyContent: 'center', gap: 10 },
+                  myActive && (myPlayer === 1 ? styles.playerBoxGlow : styles.playerBoxGlowP2),
+                ]}>
+                  <View style={styles.scoreSpeedStack}>
+                    <Text style={styles.statLabelSmall}>SCORE</Text>
+                    <Text style={styles.statValueSmall}>{game.scores[myPlayer - 1].toLocaleString()}</Text>
+                    <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+                    <Text style={[styles.statValueSpeedSmall, { color: myCol }]}>{(myPlayer === 1 ? game.p1BandIdx : game.p2BandIdx) + 1}/7</Text>
+                  </View>
+                  {game.myNext2 && (
+                    <View style={[styles.nextItemSmall, { opacity: 0.5 }]}>
+                      <Text style={[styles.statLabelSmall, { opacity: 0.7 }]}>2ND</Text>
+                      <View style={[styles.miniPieceSmall, { transform: [{ scale: 0.6 }] }]}>
+                        <MiniPiece cells={game.myNext2} player={myPlayer} />
+                      </View>
+                    </View>
+                  )}
+                  <View style={[styles.nextItemSmall, { backgroundColor: myCol + '18', borderWidth: 1, borderColor: myCol + '44', borderRadius: 4, padding: 2 }]}>
+                    <Text style={[styles.statLabelSmall, { color: myCol, fontWeight: '900', fontSize: 6 }]}>1ST</Text>
+                    <View style={[styles.miniPieceSmall, { transform: [{ scale: 0.7 }] }]}>
+                      <MiniPiece cells={myNext} player={myPlayer} />
+                    </View>
                   </View>
                 </View>
-              )}
-            </View>
+              );
+            })()}
             {/* Blind: opponent compact box */}
             {(() => {
               const oppPlayer = myPlayer === 1 ? 2 : 1;
@@ -175,7 +182,7 @@ export default function MultiplayerGameScreen({
               const oppCol = oppPlayer === 1 ? C.p1 : C.p2;
               return (
                 <View style={[
-                  { width: 56, flexDirection: 'column' as const, alignItems: 'center' as const, gap: 1, height: BAR_HEIGHT - 12, backgroundColor: C.panel, borderWidth: 1.5, borderColor: oppActive ? oppCol + '66' : C.border, borderRadius: 6, paddingHorizontal: 4, justifyContent: 'center' as const },
+                  { flex: 1, maxWidth: 80, flexDirection: 'column' as const, alignItems: 'center' as const, gap: 1, height: BAR_HEIGHT - 12, backgroundColor: C.panel, borderWidth: 1.5, borderColor: oppActive ? oppCol + '66' : C.border, borderRadius: 6, paddingHorizontal: 4, justifyContent: 'center' as const },
                   oppActive && (oppPlayer === 1 ? styles.playerBoxGlow : styles.playerBoxGlowP2),
                 ]}>
                   <Text style={styles.statLabelSmall}>SCORE</Text>
