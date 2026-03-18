@@ -150,6 +150,7 @@ export default function App() {
           er.matchId,
           er.durationMs,
           er.stats,
+          mp.gameMode ?? undefined,
         )
           .then(() => {
             setFirestoreError(null);
@@ -195,9 +196,11 @@ export default function App() {
     setScreen('login');
   }
 
-  function handleFindMatch() {
+  function handleFindMatch(gameMode?: string) {
     if (!user) return;
-    mpActions.joinQueue(user.uid, user.displayName || 'Player', userProfile?.elo ?? 1200);
+    const isBlind = gameMode === 'blind';
+    const elo = isBlind ? (userProfile?.eloBlind ?? 1200) : (userProfile?.elo ?? 1200);
+    mpActions.joinQueue(user.uid, user.displayName || 'Player', elo, gameMode as import('../../shared/types').GameMode | undefined);
   }
 
   function handleCancelSearch() {
@@ -269,6 +272,11 @@ export default function App() {
             losses={userProfile?.losses ?? 0}
             draws={userProfile?.draws ?? 0}
             gamesPlayed={userProfile?.gamesPlayed ?? 0}
+            eloBlind={userProfile?.eloBlind}
+            winsBlind={userProfile?.winsBlind}
+            lossesBlind={userProfile?.lossesBlind}
+            drawsBlind={userProfile?.drawsBlind}
+            gamesPlayedBlind={userProfile?.gamesPlayedBlind}
             matchPhase={mp.phase}
             queueSize={mp.queueSize}
             opponentName={mp.opponentName}

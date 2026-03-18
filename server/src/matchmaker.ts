@@ -3,6 +3,7 @@
 
 import { DurableObject } from 'cloudflare:workers';
 import type { ServerMessage } from './protocol';
+import type { GameMode } from '../../shared/types';
 
 interface PlayerAttachment {
   userId: string;
@@ -10,6 +11,7 @@ interface PlayerAttachment {
   elo: number;
   joinedAt: number;
   inQueue: boolean; // false once matched
+  gameMode: GameMode;
 }
 
 interface Env {
@@ -65,7 +67,7 @@ export class Matchmaker extends DurableObject<Env> {
     const data = JSON.parse(message as string);
 
     if (data.type === 'JOIN_QUEUE') {
-      const { userId, displayName, elo } = data;
+      const { userId, displayName, elo, gameMode } = data;
 
       // Don't allow duplicate queue entries
       const queue = this.getQueue();
@@ -75,7 +77,7 @@ export class Matchmaker extends DurableObject<Env> {
       }
 
       // Store player info as WebSocket attachment (survives hibernation)
-      const att: PlayerAttachment = { userId, displayName, elo, joinedAt: Date.now(), inQueue: true };
+      const att: PlayerAttachment = { userId, displayName, elo, joinedAt: Date.now(), inQueue: true, gameMode: gameMode ?? 'classic' };
       ws.serializeAttachment(att);
 
       this.send(ws, { type: 'QUEUED' });
@@ -120,35 +122,50 @@ export class Matchmaker extends DurableObject<Env> {
     const queue = this.getQueue();
     if (queue.length < 2) return;
 
-    const p1 = queue[0]!;
-    const p2 = queue[1]!;
+    // Partition queue by gameMode and try to match within each partition
+    const byMode = new Map<string, typeof queue>();
+    for (const p of queue) {
+      const mode = p.att.gameMode ?? 'classic';
+      if (!byMode.has(mode)) byMode.set(mode, []);
+      byMode.get(mode)!.push(p);
+    }
 
-    // Mark both as no longer in queue
-    this.markNotQueued(p1.ws);
-    this.markNotQueued(p2.ws);
+    for (const [mode, modePlayers] of byMode) {
+      if (modePlayers.length < 2) continue;
 
-    // Create a unique match ID
-    const matchId = crypto.randomUUID();
+      const p1 = modePlayers[0]!;
+      const p2 = modePlayers[1]!;
 
-    // Tell both players they've been matched
-    this.send(p1.ws, {
-      type: 'MATCH_FOUND',
-      matchId,
-      player: 1,
-      opponentName: p2.att.displayName,
-    });
-    this.send(p2.ws, {
-      type: 'MATCH_FOUND',
-      matchId,
-      player: 2,
-      opponentName: p1.att.displayName,
-    });
+      // Mark both as no longer in queue
+      this.markNotQueued(p1.ws);
+      this.markNotQueued(p2.ws);
 
-    // Close matchmaker WebSockets — clients will reconnect to the Match DO
-    setTimeout(() => {
-      try { p1.ws.close(1000, 'Matched'); } catch {}
-      try { p2.ws.close(1000, 'Matched'); } catch {}
-    }, 100);
+      // Create a unique match ID
+      const matchId = crypto.randomUUID();
+      const gameMode = mode as import('../../shared/types').GameMode;
+
+      // Tell both players they've been matched
+      this.send(p1.ws, {
+        type: 'MATCH_FOUND',
+        matchId,
+        player: 1,
+        opponentName: p2.att.displayName,
+        gameMode,
+      });
+      this.send(p2.ws, {
+        type: 'MATCH_FOUND',
+        matchId,
+        player: 2,
+        opponentName: p1.att.displayName,
+        gameMode,
+      });
+
+      // Close matchmaker WebSockets — clients will reconnect to the Match DO
+      setTimeout(() => {
+        try { p1.ws.close(1000, 'Matched'); } catch {}
+        try { p2.ws.close(1000, 'Matched'); } catch {}
+      }, 100);
+    }
 
     this.broadcastQueueSize();
   }

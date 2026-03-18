@@ -9,19 +9,22 @@ interface Props {
   active: boolean;
   piecesRemaining?: number;
   timeRemaining?: string;
+  blindMode?: boolean;
+  isOpponent?: boolean;
+  nextPiece2?: [number, number][];
 }
 
-export default function Panel({ player, score, bandIndex, nextPiece, active, piecesRemaining, timeRemaining }: Props) {
+export default function Panel({ player, score, bandIndex, nextPiece, active, piecesRemaining, timeRemaining, blindMode, isOpponent, nextPiece2 }: Props) {
   const col = player === 1 ? C.p1 : C.p2;
   const brt = player === 1 ? C.p1b : C.p2b;
 
   return (
     <div style={{
-      width: 152,
+      width: blindMode ? (isOpponent ? 120 : 170) : 152,
       background: active
         ? `linear-gradient(150deg, ${col}14 0%, ${C.panel} 50%)`
         : C.panel,
-      border: `1.5px solid ${active ? col + 'aa' : '#1a1a2c'}`,
+      border: `1.5px solid ${blindMode && !isOpponent ? col + 'cc' : active ? col + 'aa' : '#1a1a2c'}`,
       borderRadius: 8,
       padding: 16,
       display: 'flex',
@@ -127,14 +130,25 @@ export default function Panel({ player, score, bandIndex, nextPiece, active, pie
         </div>
       )}
 
-      {/* Next piece */}
-      <div>
-        <div style={{
-          color: C.dim, fontFamily: 'monospace',
-          fontSize: 8, letterSpacing: 3, marginBottom: 8,
-        }}>NEXT</div>
-        <MiniPiece cells={nextPiece} player={player} />
-      </div>
+      {/* Next piece(s) — blind opponent: hidden; blind self: two previews */}
+      {blindMode && isOpponent ? null : (
+        <div>
+          <div style={{
+            color: C.dim, fontFamily: 'monospace',
+            fontSize: 8, letterSpacing: 3, marginBottom: 8,
+          }}>NEXT</div>
+          <MiniPiece cells={nextPiece} player={player} />
+          {blindMode && !isOpponent && nextPiece2 && (
+            <>
+              <div style={{
+                color: C.dim, fontFamily: 'monospace',
+                fontSize: 8, letterSpacing: 3, marginBottom: 8, marginTop: 12,
+              }}>THEN</div>
+              <MiniPiece cells={nextPiece2} player={player} />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

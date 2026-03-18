@@ -10,9 +10,10 @@ import { getPracticeHistory, type PracticeRecord } from '../firestore';
 type Tab = 'play' | 'history';
 
 const GAME_MODES: { key: GameMode; label: string; icon: string; desc: string }[] = [
-  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. Reaching the ceiling ends the game. Most points wins. Speed increases with score.' },
-  { key: 'hundred', label: '100 PIECES', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling \u2014 the board grows upward. Most points wins.' },
-  { key: 'fivemin', label: '5 MINUTES', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
+  { key: 'classic', label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. Reaching the ceiling ends the game with an equalizer turn. Speed increases with score. Most points wins.' },
+  { key: 'hundred', label: '100 PIECES', icon: '\u{1F4E6}', desc: 'Each player gets 100 pieces. No ceiling \u2014 the board grows upward. Speed increases with score. Most points wins.' },
+  // { key: 'fivemin', label: '5 MINUTES', icon: '\u{23F1}', desc: '5-minute shared timer. Game ends when time runs out. Most points wins.' },
+  { key: 'blind', label: 'BLIND', icon: '\u{1F52E}', desc: "You can't see the opponent's next piece \u2014 only your own next TWO pieces. Classic ceiling rules apply. Speed increases with score. Most points wins." },
 ];
 
 interface Props {
@@ -230,7 +231,7 @@ function PracticeHistoryTab({ userId }: { userId: string }) {
         const resultColor = won ? '#22cc44' : lost ? '#ff4466' : C.text;
         const diffLabel = r.difficulty.toUpperCase();
         const diffColor = r.difficulty === 'easy' ? '#22cc44' : r.difficulty === 'medium' ? '#ffaa22' : '#ff4466';
-        const modeLabel = r.gameMode === 'hundred' ? '100P' : r.gameMode === 'fivemin' ? '5MIN' : 'CLS';
+        const modeLabel = r.gameMode === 'hundred' ? '100P' : r.gameMode === 'fivemin' ? '5MIN' : r.gameMode === 'blind' ? 'BLD' : 'CLS';
 
         return (
           <View key={rowId}>

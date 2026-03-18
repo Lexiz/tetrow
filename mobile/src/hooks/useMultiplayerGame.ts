@@ -1,14 +1,14 @@
 // Hook that bridges the multiplayer WebSocket state into a format
-// compatible with the existing game screen components.
+// compatible with the game screen components (React Native version).
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Owner, Board, CellValue } from '../../../shared/types';
 import type { Action } from '../../../shared/game/engine';
 import { getShape } from '../../../shared/game/pieces';
 import { isValid } from '../../../shared/game/board';
 import { getBandIndex } from '../../../shared/game/engine';
 import { CONFIG } from '../../../shared/config';
-import type { ClientGameState } from '../../../server/src/protocol';
+import type { ClientGameState } from './useMultiplayer';
 
 type InputAction = 'left' | 'right' | 'softDrop' | 'hardDrop' | 'rotateCW' | 'rotateCCW';
 
@@ -26,7 +26,7 @@ function inputToAction(input: InputAction): Action {
 /** Compute display board from server's ClientGameState (ghost + active piece overlay) */
 function computeDisplayFromServer(gs: ClientGameState): Board {
   const { ROWS: R, COLS: C } = CONFIG;
-  const display: CellValue[][] = gs.board.map(row => [...row] as CellValue[]);
+  const display: CellValue[][] = gs.board.map((row: CellValue[]) => [...row]);
 
   const piece = gs.piece;
   const cells = getShape(piece.type, piece.rot);
@@ -83,79 +83,7 @@ export function useMultiplayerGame(
   const myPlayerRef = useRef(myPlayer);
   myPlayerRef.current = myPlayer;
 
-  // Keyboard input — only send actions when it's our turn
-  useEffect(() => {
-    const held = new Set<string>();
-    const timers = new Map<string, {
-      das: ReturnType<typeof setTimeout> | null;
-      arr: ReturnType<typeof setInterval> | null;
-    }>();
-
-    const KEY_MAP: Record<string, InputAction> = {
-      ArrowLeft: 'left',
-      ArrowRight: 'right',
-      ArrowDown: 'softDrop',
-      Space: 'hardDrop',
-      ArrowUp: 'rotateCW',
-      KeyZ: 'rotateCCW',
-    };
-
-    function fire(input: InputAction) {
-      const gs = gameStateRef.current;
-      if (!gs || gs.phase === 'ended') return;
-      if (gs.active !== myPlayerRef.current) return;
-      sendRef.current(inputToAction(input));
-    }
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (held.has(e.code)) return;
-      const action = KEY_MAP[e.code];
-      if (!action) return;
-
-      if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Space'].includes(e.code)) {
-        e.preventDefault();
-      }
-
-      held.add(e.code);
-      fire(action);
-
-      if (action === 'left' || action === 'right' || action === 'softDrop') {
-        const handle = {
-          das: null as ReturnType<typeof setTimeout> | null,
-          arr: null as ReturnType<typeof setInterval> | null,
-        };
-        handle.das = setTimeout(() => {
-          handle.das = null;
-          handle.arr = setInterval(() => fire(action), CONFIG.ARR);
-        }, CONFIG.DAS);
-        timers.set(e.code, handle);
-      }
-    }
-
-    function handleKeyUp(e: KeyboardEvent) {
-      held.delete(e.code);
-      const handle = timers.get(e.code);
-      if (handle) {
-        if (handle.das) clearTimeout(handle.das);
-        if (handle.arr) clearInterval(handle.arr);
-        timers.delete(e.code);
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      for (const h of timers.values()) {
-        if (h.das) clearTimeout(h.das);
-        if (h.arr) clearInterval(h.arr);
-      }
-    };
-  }, []);
-
-  // Touch input handler (for mobile)
+  // Touch input handler — only send actions when it's our turn
   const handleTouchAction = useCallback((_player: Owner, action: string) => {
     const gs = gameStateRef.current;
     if (!gs || gs.phase === 'ended') return;
@@ -184,10 +112,9 @@ export function useMultiplayerGame(
     : (gameState.opponentNext ? nextCells(gameState.opponentNext) : []);
 
   // Blind mode: second preview piece for the player
-  const myNext2 = (gameState as any).myNext2
-    ? nextCells((gameState as any).myNext2) as [number, number][]
+  const myNext2 = gameState.myNext2
+    ? nextCells(gameState.myNext2) as [number, number][]
     : undefined;
-  const serverGameMode = (gameState as any).gameMode as string | undefined;
 
   return {
     displayBoard,
@@ -198,7 +125,7 @@ export function useMultiplayerGame(
     p1Next: p1Next as [number, number][],
     p2Next: p2Next as [number, number][],
     myNext2,
-    gameMode: serverGameMode,
+    gameMode: gameState.gameMode,
     isMyTurn,
     ended,
     phase: gameState.phase,

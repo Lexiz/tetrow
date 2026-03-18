@@ -25,6 +25,12 @@ export interface UserProfile {
   losses: number;
   draws: number;
   gamesPlayed: number;
+  // Blind mode ranked stats
+  eloBlind?: number;
+  winsBlind?: number;
+  lossesBlind?: number;
+  drawsBlind?: number;
+  gamesPlayedBlind?: number;
 }
 
 /** Get or create a user profile */
@@ -48,6 +54,11 @@ export async function getOrCreateProfile(userId: string, displayName: string, ph
     losses: 0,
     draws: 0,
     gamesPlayed: 0,
+    eloBlind: 1200,
+    winsBlind: 0,
+    lossesBlind: 0,
+    drawsBlind: 0,
+    gamesPlayedBlind: 0,
   };
   await setDoc(ref, profile);
   return profile;
@@ -74,6 +85,7 @@ export interface MatchRecord {
   durationMs?: number;
   p1Stats?: PlayerStats;
   p2Stats?: PlayerStats;
+  gameMode?: string;
   timestamp: any; // Firestore Timestamp
 }
 
@@ -103,11 +115,13 @@ export async function saveMyMatchResult(
   matchId?: string,
   durationMs?: number,
   stats?: [PlayerStats, PlayerStats],
+  gameMode?: string,
 ): Promise<void> {
   // Get my current profile
   const myProfile = await getUserProfile(myId);
-  const myElo = myProfile?.elo ?? 1200;
-  const myGames = myProfile?.gamesPlayed ?? 0;
+  const isBlind = gameMode === 'blind';
+  const myElo = isBlind ? (myProfile?.eloBlind ?? 1200) : (myProfile?.elo ?? 1200);
+  const myGames = isBlind ? (myProfile?.gamesPlayedBlind ?? 0) : (myProfile?.gamesPlayed ?? 0);
 
   // Calculate ELO change
   const iWon = winner === myPlayerNum;
@@ -115,16 +129,24 @@ export async function saveMyMatchResult(
   const myResult = iWon ? 1 : iLost ? 0 : 0.5;
   const myEloChange = calcEloChange(myElo, oppElo, myResult, myGames);
 
-  // Update my own profile
+  // Update my own profile — blind mode updates separate fields
   const myUpdate: Partial<UserProfile> = {
     displayName: myName,
     photoURL: myPhotoURL,
-    elo: myElo + myEloChange,
-    gamesPlayed: myGames + 1,
-    wins: (myProfile?.wins ?? 0) + (iWon ? 1 : 0),
-    losses: (myProfile?.losses ?? 0) + (iLost ? 1 : 0),
-    draws: (myProfile?.draws ?? 0) + (winner === null ? 1 : 0),
   };
+  if (isBlind) {
+    myUpdate.eloBlind = myElo + myEloChange;
+    myUpdate.gamesPlayedBlind = myGames + 1;
+    myUpdate.winsBlind = (myProfile?.winsBlind ?? 0) + (iWon ? 1 : 0);
+    myUpdate.lossesBlind = (myProfile?.lossesBlind ?? 0) + (iLost ? 1 : 0);
+    myUpdate.drawsBlind = (myProfile?.drawsBlind ?? 0) + (winner === null ? 1 : 0);
+  } else {
+    myUpdate.elo = myElo + myEloChange;
+    myUpdate.gamesPlayed = myGames + 1;
+    myUpdate.wins = (myProfile?.wins ?? 0) + (iWon ? 1 : 0);
+    myUpdate.losses = (myProfile?.losses ?? 0) + (iLost ? 1 : 0);
+    myUpdate.draws = (myProfile?.draws ?? 0) + (winner === null ? 1 : 0);
+  }
   await setDoc(doc(db, 'users', myId), myUpdate, { merge: true });
 
   // Calculate opponent ELO change for the match record
@@ -151,6 +173,7 @@ export async function saveMyMatchResult(
     p2EloChange,
     ...(durationMs !== undefined ? { durationMs } : {}),
     ...(stats ? { p1Stats: stats[0], p2Stats: stats[1] } : {}),
+    ...(gameMode ? { gameMode } : {}),
     timestamp: serverTimestamp(),
   };
   if (matchId) {
@@ -163,11 +186,12 @@ export async function saveMyMatchResult(
 
 // ── Leaderboard ──────────────────────────────────────────────────────────────
 
-export async function getLeaderboard(max = 10): Promise<(UserProfile & { id: string })[]> {
+export async function getLeaderboard(max = 10, gameMode?: string): Promise<(UserProfile & { id: string })[]> {
+  const isBlind = gameMode === 'blind';
   const q = query(
     collection(db, 'users'),
-    where('gamesPlayed', '>', 0),
-    orderBy('elo', 'desc'),
+    where(isBlind ? 'gamesPlayedBlind' : 'gamesPlayed', '>', 0),
+    orderBy(isBlind ? 'eloBlind' : 'elo', 'desc'),
     limit(max),
   );
   const snap = await getDocs(q);
@@ -176,26 +200,34 @@ export async function getLeaderboard(max = 10): Promise<(UserProfile & { id: str
 
 // ── Match History for a User ─────────────────────────────────────────────────
 
-export async function getMatchHistory(userId: string, max = 10): Promise<MatchRecord[]> {
+export async function getMatchHistory(userId: string, max = 10, gameMode?: string): Promise<MatchRecord[]> {
   const q1 = query(
     collection(db, 'matches'),
     where('p1Id', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(max),
+    limit(max * 2), // fetch extra to filter by mode client-side
   );
   const q2 = query(
     collection(db, 'matches'),
     where('p2Id', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(max),
+    limit(max * 2),
   );
 
   const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
 
-  const matches: MatchRecord[] = [
+  let matches: MatchRecord[] = [
     ...snap1.docs.map(d => ({ id: d.id, ...(d.data() as MatchRecord) })),
     ...snap2.docs.map(d => ({ id: d.id, ...(d.data() as MatchRecord) })),
   ];
+
+  // Filter by game mode if specified
+  if (gameMode) {
+    matches = matches.filter(m => (m.gameMode ?? 'classic') === gameMode);
+  } else {
+    // Default: show classic (no gameMode field or 'classic')
+    matches = matches.filter(m => !m.gameMode || m.gameMode === 'classic');
+  }
 
   matches.sort((a, b) => {
     const ta = a.timestamp?.seconds ?? 0;
@@ -212,7 +244,7 @@ export interface PracticeRecord {
   id?: string;
   userId: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  gameMode?: 'classic' | 'hundred' | 'fivemin';
+  gameMode?: string;
   myScore: number;
   aiScore: number;
   winner: Owner | null;  // 1 = player won, 2 = AI won, null = draw
@@ -230,7 +262,7 @@ export async function savePracticeResult(
   winner: Owner | null,
   durationMs: number,
   stats: [PlayerStats, PlayerStats],
-  gameMode?: 'classic' | 'hundred' | 'fivemin',
+  gameMode?: string,
 ): Promise<void> {
   const record: Omit<PracticeRecord, 'id'> = {
     userId,

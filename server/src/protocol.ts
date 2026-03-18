@@ -1,5 +1,5 @@
 // WebSocket message protocol between client and server
-import type { Owner } from '../../shared/types';
+import type { Owner, GameMode } from '../../shared/types';
 import type { Action, PlayerStats } from '../../shared/game/engine';
 import type { SettledBoard, PieceState } from '../../shared/game/board';
 import type { TetrominoType } from '../../shared/types';
@@ -7,7 +7,7 @@ import type { TetrominoType } from '../../shared/types';
 // ── Client → Server ──────────────────────────────────────────────────────────
 
 export type ClientMessage =
-  | { type: 'JOIN_QUEUE'; userId: string; displayName: string; elo: number }
+  | { type: 'JOIN_QUEUE'; userId: string; displayName: string; elo: number; gameMode?: GameMode }
   | { type: 'LEAVE_QUEUE' }
   | { type: 'CONFIRM' }
   | { type: 'REMATCH_REQUEST' }
@@ -28,23 +28,25 @@ export interface ClientGameState {
   toppedOut: [boolean, boolean];
   winner: Owner | null;
   myNext: TetrominoType;
+  myNext2: TetrominoType | null; // blind mode: player's second preview piece
   opponentNext: TetrominoType | null; // null until opponent has placed once
   lastClear: { base: number; bonus: number; player: Owner; id: number } | null;
   clearedRows: number[];
   stats: [PlayerStats, PlayerStats];
+  gameMode?: GameMode;
 }
 
 export type ServerMessage =
   | { type: 'QUEUED' }
   | { type: 'QUEUE_SIZE'; count: number }
-  | { type: 'MATCH_FOUND'; matchId: string; player: Owner; opponentName: string }
+  | { type: 'MATCH_FOUND'; matchId: string; player: Owner; opponentName: string; gameMode?: GameMode }
   | { type: 'CONFIRM_PHASE'; p1Name: string; p2Name: string; myPlayer: Owner; timeoutMs: number }
   | { type: 'PLAYER_CONFIRMED'; player: Owner }
   | { type: 'BOTH_CONFIRMED'; myPlayer: Owner; p1Name: string; p2Name: string }
   | { type: 'COUNTDOWN'; count: number }
   | { type: 'CONFIRM_TIMEOUT' }
   | { type: 'GAME_STATE'; state: ClientGameState }
-  | { type: 'GAME_END'; winner: Owner | null; toppedOut: [boolean, boolean]; forfeit: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats]; matchId: string; durationMs: number; p1Id: string; p1Name: string; p2Id: string; p2Name: string; p1Elo: number; p2Elo: number }
+  | { type: 'GAME_END'; winner: Owner | null; toppedOut: [boolean, boolean]; forfeit: Owner | null; scores: [number, number]; stats: [PlayerStats, PlayerStats]; matchId: string; durationMs: number; p1Id: string; p1Name: string; p2Id: string; p2Name: string; p1Elo: number; p2Elo: number; gameMode?: GameMode }
   | { type: 'REMATCH_SENT' }
   | { type: 'REMATCH_INVITE'; senderName: string; timeoutMs: number }
   | { type: 'REMATCH_DECLINED'; reason: 'rejected' | 'timeout' | 'left' }

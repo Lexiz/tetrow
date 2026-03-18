@@ -69,6 +69,9 @@ export default function GameScreen({ onGameEnd, aiDifficulty, gameMode, onQuit }
           active={state.active === 1 && !ended}
           piecesRemaining={state.piecesRemaining?.[0]}
           timeRemaining={timeRemaining}
+          blindMode={gameMode === 'blind'}
+          isOpponent={false}
+          nextPiece2={state.p1Next2 ? nextCells(state.p1Next2) : undefined}
         />
         <Divider activePlayer={ended ? 1 : state.active} />
 
@@ -164,6 +167,8 @@ export default function GameScreen({ onGameEnd, aiDifficulty, gameMode, onQuit }
           active={state.active === 2 && !ended}
           piecesRemaining={state.piecesRemaining?.[1]}
           timeRemaining={timeRemaining}
+          blindMode={gameMode === 'blind'}
+          isOpponent={true}
         />
       </div>
 
