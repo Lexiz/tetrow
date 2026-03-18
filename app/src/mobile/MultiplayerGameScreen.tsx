@@ -92,6 +92,7 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
       padding: 0,
       background: '#030306',
       overflow: 'hidden',
+      position: 'relative',
     }}>
       {/* Board area */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -157,14 +158,29 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
         </div>
       </div>
 
-      {/* Bottom bar — P1 left, pause center, P2 right */}
+      {/* Blind mode: pause button at top-right corner */}
+      {game.gameMode === 'blind' && !game.ended && (
+        <button
+          onClick={() => setShowPause(true)}
+          style={{
+            position: 'absolute', top: 8, right: 8, zIndex: 5,
+            background: C.panel, border: `1.5px solid ${C.border}`,
+            borderRadius: 6, padding: '6px 8px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <span style={{ fontFamily: 'monospace', fontSize: 14, color: C.white, lineHeight: 1 }}>⏸</span>
+        </button>
+      )}
+
+      {/* Bottom bar */}
       <div style={{
         width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        gap: 10,
+        gap: game.gameMode === 'blind' ? 6 : 10,
         padding: '6px 10px',
         boxSizing: 'border-box',
       }}>
@@ -180,18 +196,20 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
           nextPiece2={myPlayer === 1 ? game.myNext2 : undefined}
         />
 
-        {/* Pause button */}
-        <button
-          onClick={!game.ended ? () => setShowPause(true) : undefined}
-          style={{
-            background: C.panel, border: `1.5px solid ${C.border}`,
-            borderRadius: 6, padding: '10px 12px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontFamily: 'monospace', fontSize: 16, color: C.white, lineHeight: 1 }}>⏸</span>
-        </button>
+        {/* Pause button — only in non-blind mode */}
+        {game.gameMode !== 'blind' && (
+          <button
+            onClick={!game.ended ? () => setShowPause(true) : undefined}
+            style={{
+              background: C.panel, border: `1.5px solid ${C.border}`,
+              borderRadius: 6, padding: '10px 12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontFamily: 'monospace', fontSize: 16, color: C.white, lineHeight: 1 }}>⏸</span>
+          </button>
+        )}
 
         {/* P2 */}
         <PlayerHalf
@@ -252,49 +270,87 @@ interface PlayerHalfProps {
 function PlayerHalf({ player, score, bandIndex, active, nextPiece, blindMode, isOpponent, nextPiece2 }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
+  // Blind mode opponent: compact box with just score + speed
+  if (blindMode && isOpponent) {
+    return (
+      <div style={{
+        flex: 0, flexShrink: 0,
+        width: 60,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 1,
+        padding: '4px 6px',
+        background: active ? `${col}0c` : C.panel,
+        border: `1.5px solid ${active ? col + '88' : C.border}`,
+        borderRadius: 6,
+        boxShadow: active ? `0 0 12px ${col}22, inset 0 0 12px ${col}10` : 'none',
+        transition: 'all 0.3s',
+      }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>SCORE</span>
+        <span style={{ fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 900, color: C.white }}>{score.toLocaleString()}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5, marginTop: 1 }}>SPEED</span>
+        <span style={{ fontFamily: "'Courier New', monospace", fontSize: 10, fontWeight: 900, color: col }}>{bandIndex + 1}/7</span>
+      </div>
+    );
+  }
+
+  // Blind mode player: wide box with score/speed + two pieces horizontal (1ST / 2ND)
+  if (blindMode && !isOpponent) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: '4px 6px',
+        background: active ? `${col}0c` : C.panel,
+        border: `1.5px solid ${col}cc`,
+        borderRadius: 6,
+        boxShadow: active ? `0 0 12px ${col}22, inset 0 0 12px ${col}10` : 'none',
+        transition: 'all 0.3s',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>SCORE</span>
+          <span style={{ fontFamily: "'Courier New', monospace", fontSize: 13, fontWeight: 900, color: C.white, textShadow: active ? `0 0 8px ${col}55` : 'none' }}>{score.toLocaleString()}</span>
+          <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5, marginTop: 1 }}>SPEED</span>
+          <span style={{ fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 900, color: col, textShadow: `0 0 6px ${col}66` }}>{bandIndex + 1}/7</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>1ST</span>
+          <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+            <MiniPiece cells={nextPiece} player={player} />
+          </div>
+        </div>
+        {nextPiece2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>2ND</span>
+            <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+              <MiniPiece cells={nextPiece2} player={player} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Normal (non-blind) mode
   const scoreSpeedItem = (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-      <span style={{
-        fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
-        color: C.white, opacity: 0.5,
-      }}>SCORE</span>
-      <span style={{
-        fontFamily: "'Courier New', monospace",
-        fontSize: 13, fontWeight: 900, color: C.white,
-        textShadow: active ? `0 0 8px ${col}55` : 'none',
-      }}>{score.toLocaleString()}</span>
-      <span style={{
-        fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
-        color: C.white, opacity: 0.5, marginTop: 1,
-      }}>SPEED</span>
-      <span style={{
-        fontFamily: "'Courier New', monospace",
-        fontSize: 11, fontWeight: 900, color: col,
-        textShadow: `0 0 6px ${col}66`,
-      }}>{bandIndex + 1}/7</span>
+      <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>SCORE</span>
+      <span style={{ fontFamily: "'Courier New', monospace", fontSize: 13, fontWeight: 900, color: C.white, textShadow: active ? `0 0 8px ${col}55` : 'none' }}>{score.toLocaleString()}</span>
+      <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5, marginTop: 1 }}>SPEED</span>
+      <span style={{ fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 900, color: col, textShadow: `0 0 6px ${col}66` }}>{bandIndex + 1}/7</span>
     </div>
   );
 
-  const nextItem = blindMode && isOpponent ? null : (
+  const nextItem = (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <span style={{
-        fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
-        color: C.white, opacity: 0.5,
-      }}>NEXT</span>
+      <span style={{ fontFamily: 'monospace', fontSize: 5, letterSpacing: 1, color: C.white, opacity: 0.5 }}>NEXT</span>
       <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
         <MiniPiece cells={nextPiece} player={player} />
       </div>
-      {blindMode && !isOpponent && nextPiece2 && (
-        <>
-          <span style={{
-            fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
-            color: C.white, opacity: 0.5, marginTop: 2,
-          }}>THEN</span>
-          <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
-            <MiniPiece cells={nextPiece2} player={player} />
-          </div>
-        </>
-      )}
     </div>
   );
 
@@ -307,7 +363,7 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece, blindMode, is
       gap: 8,
       padding: '4px 6px',
       background: active ? `${col}0c` : C.panel,
-      border: `1.5px solid ${blindMode && !isOpponent ? col + 'cc' : active ? col + '88' : C.border}`,
+      border: `1.5px solid ${active ? col + '88' : C.border}`,
       borderRadius: 6,
       boxShadow: active ? `0 0 12px ${col}22, inset 0 0 12px ${col}10` : 'none',
       transition: 'all 0.3s',
