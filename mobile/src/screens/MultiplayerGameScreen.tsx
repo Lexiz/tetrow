@@ -126,56 +126,118 @@ export default function MultiplayerGameScreen({
         </GestureDetector>
       </View>
 
-      {/* Bottom bar — P1 left, pause center, P2 right */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 8 }]}>
-        {/* P1 box */}
-        <View style={[
-          styles.playerBox,
-          { borderColor: p1Active ? C.p1 + '66' : C.border, justifyContent: 'flex-end' },
-          p1Active && styles.playerBoxGlow,
-        ]}>
-          <View style={styles.scoreSpeedStack}>
-            <Text style={styles.statLabelSmall}>SCORE</Text>
-            <Text style={styles.statValueSmall}>{game.scores[0].toLocaleString()}</Text>
-            <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
-            <Text style={[styles.statValueSpeedSmall, { color: C.p1 }]}>{game.p1BandIdx + 1}/7</Text>
-          </View>
-          <View style={styles.nextItemSmall}>
-            <Text style={styles.statLabelSmall}>NEXT</Text>
-            <View style={styles.miniPieceSmall}>
-              <MiniPiece cells={game.p1Next.length > 0 ? game.p1Next : HIDDEN_NEXT} player={1} />
-            </View>
-          </View>
-        </View>
-
-        {/* Pause button */}
+      {/* Blind mode: pause button at top-right */}
+      {game.gameMode === 'blind' && !game.ended && (
         <TouchableOpacity
-          onPress={!game.ended ? () => setShowPause(true) : undefined}
-          style={styles.pauseBtn}
+          onPress={() => setShowPause(true)}
+          style={{ position: 'absolute', top: insets.top + 8, right: 8, zIndex: 5, backgroundColor: C.panel, borderWidth: 1.5, borderColor: C.border, borderRadius: 6, padding: 6 }}
           activeOpacity={0.7}
         >
-          <Text style={styles.pauseIcon}>❚❚</Text>
+          <Text style={{ fontFamily: 'Courier', fontSize: 12, color: C.white }}>❚❚</Text>
         </TouchableOpacity>
+      )}
 
-        {/* P2 box */}
-        <View style={[
-          styles.playerBox,
-          { borderColor: p2Active ? C.p2 + '66' : C.border, justifyContent: 'flex-start' },
-          p2Active && styles.playerBoxGlowP2,
-        ]}>
-          <View style={styles.nextItemSmall}>
-            <Text style={styles.statLabelSmall}>NEXT</Text>
-            <View style={styles.miniPieceSmall}>
-              <MiniPiece cells={game.p2Next.length > 0 ? game.p2Next : HIDDEN_NEXT} player={2} />
+      {/* Bottom bar */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 8, gap: game.gameMode === 'blind' ? 4 : 6 }]}>
+        {game.gameMode === 'blind' ? (
+          <>
+            {/* Blind: "my" player wide box with 1ST/2ND horizontal */}
+            <View style={[
+              styles.playerBox,
+              { flex: 1, borderColor: (myPlayer === 1 ? C.p1 : C.p2) + 'cc', justifyContent: 'center' },
+              (myPlayer === 1 ? p1Active : p2Active) && (myPlayer === 1 ? styles.playerBoxGlow : styles.playerBoxGlowP2),
+            ]}>
+              <View style={styles.scoreSpeedStack}>
+                <Text style={styles.statLabelSmall}>SCORE</Text>
+                <Text style={styles.statValueSmall}>{game.scores[myPlayer - 1].toLocaleString()}</Text>
+                <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+                <Text style={[styles.statValueSpeedSmall, { color: myPlayer === 1 ? C.p1 : C.p2 }]}>{(myPlayer === 1 ? game.p1BandIdx : game.p2BandIdx) + 1}/7</Text>
+              </View>
+              <View style={styles.nextItemSmall}>
+                <Text style={styles.statLabelSmall}>1ST</Text>
+                <View style={styles.miniPieceSmall}>
+                  <MiniPiece cells={myPlayer === 1 ? (game.p1Next.length > 0 ? game.p1Next : HIDDEN_NEXT) : (game.p2Next.length > 0 ? game.p2Next : HIDDEN_NEXT)} player={myPlayer} />
+                </View>
+              </View>
+              {game.myNext2 && (
+                <View style={styles.nextItemSmall}>
+                  <Text style={styles.statLabelSmall}>2ND</Text>
+                  <View style={styles.miniPieceSmall}>
+                    <MiniPiece cells={game.myNext2} player={myPlayer} />
+                  </View>
+                </View>
+              )}
             </View>
-          </View>
-          <View style={styles.scoreSpeedStack}>
-            <Text style={styles.statLabelSmall}>SCORE</Text>
-            <Text style={styles.statValueSmall}>{game.scores[1].toLocaleString()}</Text>
-            <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
-            <Text style={[styles.statValueSpeedSmall, { color: C.p2 }]}>{game.p2BandIdx + 1}/7</Text>
-          </View>
-        </View>
+            {/* Blind: opponent compact box */}
+            {(() => {
+              const oppPlayer = myPlayer === 1 ? 2 : 1;
+              const oppActive = oppPlayer === 1 ? p1Active : p2Active;
+              const oppCol = oppPlayer === 1 ? C.p1 : C.p2;
+              return (
+                <View style={[
+                  { width: 56, flexDirection: 'column' as const, alignItems: 'center' as const, gap: 1, height: BAR_HEIGHT - 12, backgroundColor: C.panel, borderWidth: 1.5, borderColor: oppActive ? oppCol + '66' : C.border, borderRadius: 6, paddingHorizontal: 4, justifyContent: 'center' as const },
+                  oppActive && (oppPlayer === 1 ? styles.playerBoxGlow : styles.playerBoxGlowP2),
+                ]}>
+                  <Text style={styles.statLabelSmall}>SCORE</Text>
+                  <Text style={[styles.statValueSmall, { fontSize: 12 }]}>{game.scores[oppPlayer - 1].toLocaleString()}</Text>
+                  <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+                  <Text style={[styles.statValueSpeedSmall, { color: oppCol, fontSize: 10 }]}>{(oppPlayer === 1 ? game.p1BandIdx : game.p2BandIdx) + 1}/7</Text>
+                </View>
+              );
+            })()}
+          </>
+        ) : (
+          <>
+            {/* Normal: P1 box */}
+            <View style={[
+              styles.playerBox,
+              { borderColor: p1Active ? C.p1 + '66' : C.border, justifyContent: 'flex-end' },
+              p1Active && styles.playerBoxGlow,
+            ]}>
+              <View style={styles.scoreSpeedStack}>
+                <Text style={styles.statLabelSmall}>SCORE</Text>
+                <Text style={styles.statValueSmall}>{game.scores[0].toLocaleString()}</Text>
+                <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+                <Text style={[styles.statValueSpeedSmall, { color: C.p1 }]}>{game.p1BandIdx + 1}/7</Text>
+              </View>
+              <View style={styles.nextItemSmall}>
+                <Text style={styles.statLabelSmall}>NEXT</Text>
+                <View style={styles.miniPieceSmall}>
+                  <MiniPiece cells={game.p1Next.length > 0 ? game.p1Next : HIDDEN_NEXT} player={1} />
+                </View>
+              </View>
+            </View>
+
+            {/* Pause button */}
+            <TouchableOpacity
+              onPress={!game.ended ? () => setShowPause(true) : undefined}
+              style={styles.pauseBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pauseIcon}>❚❚</Text>
+            </TouchableOpacity>
+
+            {/* Normal: P2 box */}
+            <View style={[
+              styles.playerBox,
+              { borderColor: p2Active ? C.p2 + '66' : C.border, justifyContent: 'flex-start' },
+              p2Active && styles.playerBoxGlowP2,
+            ]}>
+              <View style={styles.nextItemSmall}>
+                <Text style={styles.statLabelSmall}>NEXT</Text>
+                <View style={styles.miniPieceSmall}>
+                  <MiniPiece cells={game.p2Next.length > 0 ? game.p2Next : HIDDEN_NEXT} player={2} />
+                </View>
+              </View>
+              <View style={styles.scoreSpeedStack}>
+                <Text style={styles.statLabelSmall}>SCORE</Text>
+                <Text style={styles.statValueSmall}>{game.scores[1].toLocaleString()}</Text>
+                <Text style={[styles.statLabelSmall, { marginTop: 1 }]}>SPEED</Text>
+                <Text style={[styles.statValueSpeedSmall, { color: C.p2 }]}>{game.p2BandIdx + 1}/7</Text>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* End overlay */}

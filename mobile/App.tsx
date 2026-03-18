@@ -163,6 +163,7 @@ export default function App() {
         {screen === 'game' && (
           <GameScreen
             aiDifficulty={difficulty}
+            gameMode={practiceGameMode}
             onGameEnd={(p1Score, p2Score, toppedOut, stats) => {
               setEndData({ p1Score, p2Score, toppedOut, stats });
               setScreen('end');
