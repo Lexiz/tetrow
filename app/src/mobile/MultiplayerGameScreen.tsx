@@ -175,6 +175,9 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
           bandIndex={game.p1BandIdx}
           active={game.active === 1 && !game.ended}
           nextPiece={game.p1Next}
+          blindMode={game.gameMode === 'blind'}
+          isOpponent={myPlayer !== 1}
+          nextPiece2={myPlayer === 1 ? game.myNext2 : undefined}
         />
 
         {/* Pause button */}
@@ -197,6 +200,9 @@ export default function MobileMultiplayerGameScreen({ gameState, myPlayer, myNam
           bandIndex={game.p2BandIdx}
           active={game.active === 2 && !game.ended}
           nextPiece={game.p2Next}
+          blindMode={game.gameMode === 'blind'}
+          isOpponent={myPlayer !== 2}
+          nextPiece2={myPlayer === 2 ? game.myNext2 : undefined}
         />
       </div>
 
@@ -238,9 +244,12 @@ interface PlayerHalfProps {
   bandIndex: number;
   active: boolean;
   nextPiece: [number, number][];
+  blindMode?: boolean;
+  isOpponent?: boolean;
+  nextPiece2?: [number, number][];
 }
 
-function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, active, nextPiece, blindMode, isOpponent, nextPiece2 }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
   const scoreSpeedItem = (
@@ -266,7 +275,7 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfP
     </div>
   );
 
-  const nextItem = (
+  const nextItem = blindMode && isOpponent ? null : (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <span style={{
         fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
@@ -275,6 +284,17 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfP
       <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
         <MiniPiece cells={nextPiece} player={player} />
       </div>
+      {blindMode && !isOpponent && nextPiece2 && (
+        <>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
+            color: C.white, opacity: 0.5, marginTop: 2,
+          }}>THEN</span>
+          <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+            <MiniPiece cells={nextPiece2} player={player} />
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -287,7 +307,7 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece }: PlayerHalfP
       gap: 8,
       padding: '4px 6px',
       background: active ? `${col}0c` : C.panel,
-      border: `1.5px solid ${active ? col + '88' : C.border}`,
+      border: `1.5px solid ${blindMode && !isOpponent ? col + 'cc' : active ? col + '88' : C.border}`,
       borderRadius: 6,
       boxShadow: active ? `0 0 12px ${col}22, inset 0 0 12px ${col}10` : 'none',
       transition: 'all 0.3s',

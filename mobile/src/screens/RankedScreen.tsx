@@ -9,6 +9,8 @@ const SERVER_URL = 'https://tetchess-server.alex-lisitzky.workers.dev';
 
 type Tab = 'leaderboard' | 'history';
 
+type RankedMode = 'classic' | 'blind';
+
 interface Props {
   userId: string;
   elo: number;
@@ -16,11 +18,16 @@ interface Props {
   losses: number;
   draws: number;
   gamesPlayed: number;
+  eloBlind?: number;
+  winsBlind?: number;
+  lossesBlind?: number;
+  drawsBlind?: number;
+  gamesPlayedBlind?: number;
   matchPhase: MatchPhase;
   queueSize: number;
   opponentName: string | null;
   error: string | null;
-  onFindMatch: () => void;
+  onFindMatch: (gameMode: RankedMode) => void;
   onCancelSearch: () => void;
   onBack: () => void;
   onEnterLobby: () => void;
@@ -28,14 +35,22 @@ interface Props {
 }
 
 export default function RankedScreen({
-  userId, elo, wins, losses, draws, gamesPlayed, matchPhase, queueSize,
+  userId, elo, wins, losses, draws, gamesPlayed,
+  eloBlind, winsBlind, lossesBlind, drawsBlind, gamesPlayedBlind,
+  matchPhase, queueSize,
   opponentName, error, onFindMatch, onCancelSearch, onBack, onEnterLobby, onLeaveLobby,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [lobbyCount, setLobbyCount] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>('leaderboard');
-  const rankCol = getRankColor(elo);
-  const rankLabel = getRankLabel(elo);
+  const [rankedMode, setRankedMode] = useState<RankedMode>('classic');
+
+  const activeElo = rankedMode === 'blind' ? (eloBlind ?? 1200) : elo;
+  const activeWins = rankedMode === 'blind' ? (winsBlind ?? 0) : wins;
+  const activeLosses = rankedMode === 'blind' ? (lossesBlind ?? 0) : losses;
+  const activeGamesPlayed = rankedMode === 'blind' ? (gamesPlayedBlind ?? 0) : gamesPlayed;
+  const rankCol = getRankColor(activeElo);
+  const rankLabel = getRankLabel(activeElo);
 
   const isSearching = matchPhase === 'queuing';
   const isConnecting = matchPhase === 'connecting';
@@ -103,6 +118,32 @@ export default function RankedScreen({
       {/* Spacer */}
       <View style={{ height: 32 }} />
 
+      {/* Mode toggle */}
+      <View style={{ flexDirection: 'row', gap: 8, width: '100%', zIndex: 1 }}>
+        {([
+          { key: 'classic' as RankedMode, label: 'CLASSIC', icon: '\u{1F3AE}' },
+          { key: 'blind' as RankedMode, label: 'BLIND', icon: '\u{1F52E}' },
+        ]).map(({ key, label, icon }) => (
+          <TouchableOpacity
+            key={key}
+            onPress={() => setRankedMode(key)}
+            style={{
+              flex: 1, padding: 10, alignItems: 'center', gap: 4,
+              backgroundColor: rankedMode === key ? C.p2 + '22' : '#080812',
+              borderWidth: 1.5,
+              borderColor: rankedMode === key ? C.p2 : C.border,
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>{icon}</Text>
+            <Text style={{
+              fontFamily: 'Courier', fontSize: 9, fontWeight: '900',
+              letterSpacing: 1, color: rankedMode === key ? C.p2 : C.text,
+            }}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {/* Stats card */}
       <View style={styles.statsCard}>
         <View style={{ alignItems: 'center' }}>
@@ -114,21 +155,21 @@ export default function RankedScreen({
         </View>
         <View style={{ alignItems: 'center' }}>
           <Text style={styles.statsLabel}>ELO:</Text>
-          <Text style={styles.statsElo}>{elo}</Text>
+          <Text style={styles.statsElo}>{activeElo}</Text>
         </View>
         <View style={{ alignItems: 'center' }}>
           <Text style={styles.statsLabel}>GAMES:</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
-            <Text style={styles.statsElo}>{gamesPlayed}</Text>
+            <Text style={styles.statsElo}>{activeGamesPlayed}</Text>
             <Text style={{ fontFamily: 'Courier', fontSize: 9, color: C.text }}>
-              (<Text style={{ color: '#22cc44' }}>{wins}W</Text> <Text style={{ color: '#ff4466' }}>{losses}L</Text>)
+              (<Text style={{ color: '#22cc44' }}>{activeWins}W</Text> <Text style={{ color: '#ff4466' }}>{activeLosses}L</Text>)
             </Text>
           </View>
         </View>
       </View>
 
       {/* Find Match button */}
-      <TouchableOpacity onPress={onFindMatch} style={styles.findBtn}>
+      <TouchableOpacity onPress={() => onFindMatch(rankedMode)} style={styles.findBtn}>
         <Text style={styles.findText}>FIND MATCH</Text>
       </TouchableOpacity>
 
@@ -161,7 +202,7 @@ export default function RankedScreen({
 
       {/* Tab content */}
       <View style={styles.tabContent}>
-        {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab userId={userId} />}
+        {tab === 'leaderboard' ? <LeaderboardTab gameMode={rankedMode} /> : <HistoryTab userId={userId} gameMode={rankedMode} />}
       </View>
     </View>
   );
@@ -186,12 +227,13 @@ function SearchTimer() {
   );
 }
 
-function LeaderboardTab() {
+function LeaderboardTab({ gameMode }: { gameMode?: string }) {
   const [entries, setEntries] = useState<(UserProfile & { id: string })[] | null>(null);
 
   useEffect(() => {
-    getLeaderboard(10).then(setEntries).catch(() => setEntries([]));
-  }, []);
+    setEntries(null);
+    getLeaderboard(10, gameMode).then(setEntries).catch(() => setEntries([]));
+  }, [gameMode]);
 
   if (entries === null) {
     return <Text style={styles.loadingText}>Loading...</Text>;
@@ -202,25 +244,31 @@ function LeaderboardTab() {
 
   return (
     <ScrollView>
-      {entries.map((entry, i) => (
-        <View key={entry.id} style={[styles.leaderboardRow, i === 0 && { backgroundColor: C.p2 + '0c', borderRadius: 4 }]}>
-          <Text style={[styles.rank, { color: i < 3 ? C.p2 : C.text }]}>#{i + 1}</Text>
-          <Text style={styles.entryName} numberOfLines={1}>{entry.displayName}</Text>
-          <Text style={[styles.entryElo, { color: getRankColor(entry.elo) }]}>{entry.elo}</Text>
-          <Text style={styles.entryRecord}>{entry.wins}W {entry.losses}L</Text>
-        </View>
-      ))}
+      {entries.map((entry, i) => {
+        const entryElo = gameMode === 'blind' ? (entry.eloBlind ?? 1200) : entry.elo;
+        const entryWins = gameMode === 'blind' ? (entry.winsBlind ?? 0) : entry.wins;
+        const entryLosses = gameMode === 'blind' ? (entry.lossesBlind ?? 0) : entry.losses;
+        return (
+          <View key={entry.id} style={[styles.leaderboardRow, i === 0 && { backgroundColor: C.p2 + '0c', borderRadius: 4 }]}>
+            <Text style={[styles.rank, { color: i < 3 ? C.p2 : C.text }]}>#{i + 1}</Text>
+            <Text style={styles.entryName} numberOfLines={1}>{entry.displayName}</Text>
+            <Text style={[styles.entryElo, { color: getRankColor(entryElo) }]}>{entryElo}</Text>
+            <Text style={styles.entryRecord}>{entryWins}W {entryLosses}L</Text>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
 
-function HistoryTab({ userId }: { userId: string }) {
+function HistoryTab({ userId, gameMode }: { userId: string; gameMode?: string }) {
   const [matches, setMatches] = useState<MatchRecord[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    getMatchHistory(userId, 10).then(setMatches).catch(() => setMatches([]));
-  }, [userId]);
+    setMatches(null);
+    getMatchHistory(userId, 10, gameMode).then(setMatches).catch(() => setMatches([]));
+  }, [userId, gameMode]);
 
   if (matches === null) {
     return <Text style={styles.loadingText}>Loading...</Text>;

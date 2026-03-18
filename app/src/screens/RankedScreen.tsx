@@ -12,6 +12,8 @@ const H = CONFIG.ROWS * CONFIG.CELL_SIZE + 80;
 
 type Tab = 'leaderboard' | 'history';
 
+type RankedMode = 'classic' | 'blind';
+
 interface Props {
   user: User;
   elo: number;
@@ -19,11 +21,16 @@ interface Props {
   losses: number;
   draws: number;
   gamesPlayed: number;
+  eloBlind?: number;
+  winsBlind?: number;
+  lossesBlind?: number;
+  drawsBlind?: number;
+  gamesPlayedBlind?: number;
   matchPhase: MatchPhase;
   queueSize: number;
   opponentName: string | null;
   error: string | null;
-  onFindMatch: () => void;
+  onFindMatch: (gameMode: RankedMode) => void;
   onCancelSearch: () => void;
   onBack: () => void;
   onEnterLobby: () => void;
@@ -32,15 +39,24 @@ interface Props {
 }
 
 export default function RankedScreen({
-  user, elo, wins, losses, draws, gamesPlayed, matchPhase, queueSize, opponentName, error,
+  user, elo, wins, losses, draws, gamesPlayed,
+  eloBlind, winsBlind, lossesBlind, drawsBlind, gamesPlayedBlind,
+  matchPhase, queueSize, opponentName, error,
   onFindMatch, onCancelSearch, onBack, onEnterLobby, onLeaveLobby, isMobile,
 }: Props) {
   const [tab, setTab] = useState<Tab>('leaderboard');
   const [lobbyCount, setLobbyCount] = useState<number | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
-  const rankCol = getRankColor(elo);
-  const rankLabel = getRankLabel(elo);
-  const rankIcon = getRankIcon(elo);
+  const [rankedMode, setRankedMode] = useState<RankedMode>('classic');
+  const [showModeInfo, setShowModeInfo] = useState<RankedMode | null>(null);
+
+  const activeElo = rankedMode === 'blind' ? (eloBlind ?? 1200) : elo;
+  const activeWins = rankedMode === 'blind' ? (winsBlind ?? 0) : wins;
+  const activeLosses = rankedMode === 'blind' ? (lossesBlind ?? 0) : losses;
+  const activeGamesPlayed = rankedMode === 'blind' ? (gamesPlayedBlind ?? 0) : gamesPlayed;
+  const rankCol = getRankColor(activeElo);
+  const rankLabel = getRankLabel(activeElo);
+  const rankIcon = getRankIcon(activeElo);
 
   const isSearching = matchPhase === 'queuing';
   const isConnecting = matchPhase === 'connecting';
@@ -231,6 +247,60 @@ export default function RankedScreen({
       {/* Spacer to push stats card down from back button */}
       <div style={{ height: 32 }} />
 
+      {/* Mode toggle */}
+      <div style={{
+        zIndex: 1, display: 'flex', gap: 8,
+        width: isMobile ? '100%' : 380,
+        maxWidth: 420,
+      }}>
+        {([
+          { key: 'classic' as RankedMode, label: 'CLASSIC', icon: '\u{1F3AE}', desc: 'Standard rules. Both players see each other\'s next piece.' },
+          { key: 'blind' as RankedMode, label: 'BLIND', icon: '\u{1F52E}', desc: 'You can\'t see the opponent\'s next piece. You see your own next TWO pieces.' },
+        ]).map(({ key, label, icon, desc }) => (
+          <button key={key} onClick={() => setRankedMode(key)} style={{
+            flex: 1, padding: '10px 4px',
+            background: rankedMode === key ? `${C.p2}22` : '#080812',
+            border: `1.5px solid ${rankedMode === key ? C.p2 : C.border}`,
+            borderRadius: 6, cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            position: 'relative',
+          }}>
+            <span style={{ fontSize: 16 }}>{icon}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
+              letterSpacing: 1, color: rankedMode === key ? C.p2 : C.text,
+            }}>{label}</span>
+            <span
+              onClick={(e) => { e.stopPropagation(); setShowModeInfo(showModeInfo === key ? null : key); }}
+              style={{
+                position: 'absolute', top: 4, right: 4,
+                fontFamily: 'monospace', fontSize: 9, fontWeight: 900,
+                color: C.text, opacity: 0.5, cursor: 'pointer',
+                width: 14, height: 14, borderRadius: '50%',
+                border: `1px solid ${C.text}44`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: 1,
+              }}
+            >?</span>
+          </button>
+        ))}
+      </div>
+      {showModeInfo && (
+        <div style={{
+          zIndex: 1, padding: '10px 14px',
+          width: isMobile ? '100%' : 380,
+          maxWidth: 420,
+          background: '#080812',
+          border: `1px solid ${C.border}`,
+          borderRadius: 6,
+          fontFamily: 'monospace', fontSize: 9, color: C.text,
+          lineHeight: 1.6, boxSizing: 'border-box',
+        }}>{showModeInfo === 'classic'
+          ? "Standard rules. Both players see each other's next piece."
+          : "You can't see the opponent's next piece. You see your own next TWO pieces."
+        }</div>
+      )}
+
       {/* Stats card — bordered box like our buttons */}
       <div style={{
         zIndex: 1,
@@ -262,7 +332,7 @@ export default function RankedScreen({
           <div style={{
             fontFamily: "'Courier New', monospace", fontSize: 22, fontWeight: 900,
             color: C.white, marginTop: 2,
-          }}>{elo}</div>
+          }}>{activeElo}</div>
         </div>
 
         {/* Games */}
@@ -271,28 +341,27 @@ export default function RankedScreen({
           <div style={{ marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'center' }}>
             <span style={{
               fontFamily: "'Courier New', monospace", fontSize: 22, fontWeight: 900, color: C.white,
-            }}>{gamesPlayed}</span>
+            }}>{activeGamesPlayed}</span>
             <span style={{ fontFamily: 'monospace', fontSize: 9, color: C.text }}>
-              (<span style={{ color: '#22cc44' }}>{wins}W</span> <span style={{ color: '#ff4466' }}>{losses}L</span>)
+              (<span style={{ color: '#22cc44' }}>{activeWins}W</span> <span style={{ color: '#ff4466' }}>{activeLosses}L</span>)
             </span>
           </div>
         </div>
       </div>
 
-      {/* Find Match button — gradient border like main menu */}
-      <button onClick={onFindMatch} style={{
+      {/* Find Match button */}
+      <button onClick={() => onFindMatch(rankedMode)} style={{
         zIndex: 1,
-        width: isMobile ? '100%' : 380,
-        maxWidth: 420,
-        padding: '18px 48px',
+        width: isMobile ? '80%' : 280,
+        maxWidth: 320,
+        padding: '14px 32px',
         background: '#080812',
-        border: '2px solid transparent',
-        borderImage: `linear-gradient(135deg, ${C.p1}, ${C.p2}) 1`,
-        borderRadius: 0,
+        border: `2px solid ${C.p2}88`,
+        borderRadius: 8,
         cursor: 'pointer',
-        fontFamily: 'monospace', fontSize: 15, fontWeight: 900,
-        letterSpacing: 5, color: C.white,
-        boxShadow: `0 0 12px ${C.p1}33, 0 0 12px ${C.p2}33`,
+        fontFamily: 'monospace', fontSize: 13, fontWeight: 900,
+        letterSpacing: 4, color: C.white,
+        boxShadow: `0 0 12px ${C.p2}22`,
         boxSizing: 'border-box',
       }}>FIND MATCH</button>
 
@@ -362,7 +431,7 @@ export default function RankedScreen({
         padding: 16,
         boxSizing: 'border-box',
       }}>
-        {tab === 'leaderboard' ? <LeaderboardTab /> : <HistoryTab userId={user.uid} />}
+        {tab === 'leaderboard' ? <LeaderboardTab gameMode={rankedMode} /> : <HistoryTab userId={user.uid} gameMode={rankedMode} />}
       </div>
 
       {/* Rank info modal */}
@@ -442,17 +511,18 @@ function SearchTimer() {
   );
 }
 
-function LeaderboardTab() {
+function LeaderboardTab({ gameMode }: { gameMode?: string }) {
   const [entries, setEntries] = useState<(UserProfile & { id: string })[] | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    getLeaderboard(10).then(setEntries).catch((err) => {
+    setEntries(null);
+    getLeaderboard(10, gameMode).then(setEntries).catch((err) => {
       console.error('Leaderboard fetch failed:', err);
       setFetchError(err?.message || String(err));
       setEntries([]);
     });
-  }, []);
+  }, [gameMode]);
 
   if (entries === null) {
     return <div style={{ fontFamily: 'monospace', fontSize: 9, color: C.text, textAlign: 'center', padding: 20 }}>Loading...</div>;
@@ -480,7 +550,10 @@ function LeaderboardTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {entries.map((entry, i) => {
-        const rankCol = getRankColor(entry.elo);
+        const entryElo = gameMode === 'blind' ? (entry.eloBlind ?? 1200) : entry.elo;
+        const entryWins = gameMode === 'blind' ? (entry.winsBlind ?? 0) : entry.wins;
+        const entryLosses = gameMode === 'blind' ? (entry.lossesBlind ?? 0) : entry.losses;
+        const rankCol = getRankColor(entryElo);
         return (
           <div key={entry.id} style={{
             display: 'flex', alignItems: 'center', gap: 10,
@@ -498,10 +571,10 @@ function LeaderboardTab() {
             }}>{entry.displayName}</span>
             <span style={{
               fontFamily: 'monospace', fontSize: 10, fontWeight: 700, color: rankCol,
-            }}>{entry.elo}</span>
+            }}>{entryElo}</span>
             <span style={{
               fontFamily: 'monospace', fontSize: 8, color: C.text, opacity: 0.5,
-            }}>{entry.wins}W {entry.losses}L</span>
+            }}>{entryWins}W {entryLosses}L</span>
           </div>
         );
       })}
@@ -509,18 +582,19 @@ function LeaderboardTab() {
   );
 }
 
-function HistoryTab({ userId }: { userId: string }) {
+function HistoryTab({ userId, gameMode }: { userId: string; gameMode?: string }) {
   const [matches, setMatches] = useState<MatchRecord[] | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    getMatchHistory(userId, 10).then(setMatches).catch((err) => {
+    setMatches(null);
+    getMatchHistory(userId, 10, gameMode).then(setMatches).catch((err) => {
       console.error('History fetch failed:', err);
       setFetchError(err?.message || String(err));
       setMatches([]);
     });
-  }, [userId]);
+  }, [userId, gameMode]);
 
   if (matches === null) {
     return <div style={{ fontFamily: 'monospace', fontSize: 9, color: C.text, textAlign: 'center', padding: 20 }}>Loading...</div>;

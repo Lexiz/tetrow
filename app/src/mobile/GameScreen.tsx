@@ -184,6 +184,9 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, gameMode, on
           nextPiece={showP1Next ? nextCells(state.p1Next) : HIDDEN_NEXT}
           piecesRemaining={state.piecesRemaining?.[0]}
           timeRemaining={timeRemaining}
+          blindMode={gameMode === 'blind'}
+          isOpponent={false}
+          nextPiece2={state.p1Next2 ? nextCells(state.p1Next2) : undefined}
         />
 
         {/* Pause button */}
@@ -208,6 +211,8 @@ export default function MobileGameScreen({ onGameEnd, aiDifficulty, gameMode, on
           nextPiece={nextCells(state.p2Next)}
           piecesRemaining={state.piecesRemaining?.[1]}
           timeRemaining={timeRemaining}
+          blindMode={gameMode === 'blind'}
+          isOpponent={true}
         />
       </div>
 
@@ -253,9 +258,12 @@ interface PlayerHalfProps {
   nextPiece: [number, number][];
   piecesRemaining?: number;
   timeRemaining?: string;
+  blindMode?: boolean;
+  isOpponent?: boolean;
+  nextPiece2?: [number, number][];
 }
 
-function PlayerHalf({ player, score, bandIndex, active, nextPiece, piecesRemaining, timeRemaining }: PlayerHalfProps) {
+function PlayerHalf({ player, score, bandIndex, active, nextPiece, piecesRemaining, timeRemaining, blindMode, isOpponent, nextPiece2 }: PlayerHalfProps) {
   const col = player === 1 ? C.p1 : C.p2;
 
   const scoreSpeedItem = (
@@ -306,7 +314,7 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece, piecesRemaini
     </div>
   );
 
-  const nextItem = (
+  const nextItem = blindMode && isOpponent ? null : (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <span style={{
         fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
@@ -315,6 +323,17 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece, piecesRemaini
       <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
         <MiniPiece cells={nextPiece} player={player} />
       </div>
+      {blindMode && !isOpponent && nextPiece2 && (
+        <>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 5, letterSpacing: 1,
+            color: C.white, opacity: 0.5, marginTop: 2,
+          }}>THEN</span>
+          <div style={{ marginTop: 1, transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+            <MiniPiece cells={nextPiece2} player={player} />
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -327,7 +346,7 @@ function PlayerHalf({ player, score, bandIndex, active, nextPiece, piecesRemaini
       gap: 8,
       padding: '4px 6px',
       background: active ? `${col}0c` : C.panel,
-      border: `1.5px solid ${active ? col + '88' : C.border}`,
+      border: `1.5px solid ${blindMode && !isOpponent ? col + 'cc' : active ? col + '88' : C.border}`,
       borderRadius: 6,
       boxShadow: active ? `0 0 12px ${col}22, inset 0 0 12px ${col}10` : 'none',
       transition: 'all 0.3s',

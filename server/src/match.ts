@@ -3,7 +3,7 @@
 // Flow: waiting → confirming (15s timeout) → countdown (3,2,1) → playing → ended
 
 import { DurableObject } from 'cloudflare:workers';
-import type { Owner } from '../../shared/types';
+import type { Owner, GameMode } from '../../shared/types';
 import { createInitialState, gameReducer, type GameState, type Action } from '../../shared/game/engine';
 import { getGravityMs } from '../../shared/game/engine';
 import type { ClientGameState, ServerMessage } from './protocol';
@@ -27,6 +27,7 @@ export class Match extends DurableObject {
   private confirmed: Set<Owner> = new Set();
   private countdownValue: number = 3;
   private matchId: string = '';
+  private gameMode: GameMode = 'classic';
   private gameStartedAt: number = 0;
   private rematchInviter: Owner | null = null;
   private forfeit: Owner | null = null;
@@ -48,6 +49,8 @@ export class Match extends DurableObject {
     const elo = parseInt(url.searchParams.get('elo') ?? '1200', 10);
     const playerNum = parseInt(url.searchParams.get('player') ?? '0', 10) as Owner;
     if (!this.matchId) this.matchId = url.searchParams.get('matchId') ?? '';
+    const gameModeParam = url.searchParams.get('gameMode');
+    if (gameModeParam) this.gameMode = gameModeParam as GameMode;
 
     if (playerNum !== 1 && playerNum !== 2) {
       return new Response('Invalid player number', { status: 400 });
@@ -137,7 +140,7 @@ export class Match extends DurableObject {
 
   private startGame() {
     this.matchPhase = 'playing';
-    this.state = createInitialState();
+    this.state = createInitialState(this.gameMode);
     this.gameStartedAt = Date.now();
     this.rematchInviter = null;
     this.forfeit = null;
@@ -147,10 +150,18 @@ export class Match extends DurableObject {
 
   private toClientState(forPlayer: Owner): ClientGameState {
     const s = this.state!;
+    const isBlind = this.gameMode === 'blind';
     const myNext = forPlayer === 1 ? s.p1Next : s.p2Next;
-    const opponentNext = forPlayer === 1
-      ? (s.p2HasPlaced ? s.p2Next : null)
-      : s.p1Next;
+    // Blind mode: never reveal opponent's next piece
+    const opponentNext = isBlind
+      ? null
+      : forPlayer === 1
+        ? (s.p2HasPlaced ? s.p2Next : null)
+        : s.p1Next;
+    // Blind mode: send the player's second preview piece
+    const myNext2 = isBlind
+      ? (forPlayer === 1 ? s.p1Next2 ?? null : s.p2Next2 ?? null)
+      : null;
 
     return {
       board: s.board,
@@ -161,10 +172,12 @@ export class Match extends DurableObject {
       toppedOut: s.toppedOut,
       winner: s.winner,
       myNext,
+      myNext2,
       opponentNext,
       lastClear: s.lastClear,
       clearedRows: s.clearedRows,
       stats: s.stats,
+      gameMode: this.gameMode,
     };
   }
 
@@ -211,6 +224,7 @@ export class Match extends DurableObject {
       p2Name: p2?.displayName ?? 'Player 2',
       p1Elo: p1?.elo ?? 1200,
       p2Elo: p2?.elo ?? 1200,
+      gameMode: this.gameMode,
     };
     for (const [, conn] of this.players) {
       this.send(conn.ws, msg);

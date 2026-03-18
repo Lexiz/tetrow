@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { Owner } from '../../../shared/types';
+import type { Owner, GameMode } from '../../../shared/types';
 import type { Action, PlayerStats } from '../../../shared/game/engine';
 import type { ClientMessage, ServerMessage, ClientGameState } from '../../../server/src/protocol';
 
@@ -38,6 +38,7 @@ interface MultiplayerState {
   lobbyCount: number;
   myPlayer: Owner | null;
   opponentName: string | null;
+  gameMode: GameMode | null;
   gameState: ClientGameState | null;
   endResult: {
     winner: Owner | null;
@@ -53,6 +54,7 @@ interface MultiplayerState {
     p2Name: string;
     p1Elo: number;
     p2Elo: number;
+    gameMode?: GameMode;
   } | null;
   rematchState: 'idle' | 'sent' | 'declined';
   rematchInvite: { senderName: string; timeoutMs: number } | null;
@@ -65,7 +67,7 @@ interface MultiplayerState {
 interface MultiplayerActions {
   connectLobby: () => void;
   disconnectLobby: () => void;
-  joinQueue: (userId: string, displayName: string, elo: number) => void;
+  joinQueue: (userId: string, displayName: string, elo: number, gameMode?: GameMode) => void;
   leaveQueue: () => void;
   confirm: () => void;
   rematch: () => void;
@@ -82,6 +84,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const [lobbyCount, setLobbyCount] = useState(0);
   const [myPlayer, setMyPlayer] = useState<Owner | null>(null);
   const [opponentName, setOpponentName] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<GameMode | null>(null);
   const [gameState, setGameState] = useState<ClientGameState | null>(null);
   const [endResult, setEndResult] = useState<MultiplayerState['endResult']>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +97,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   const lobbyWs = useRef<WebSocket | null>(null);
   const queueWs = useRef<WebSocket | null>(null);
   const matchWs = useRef<WebSocket | null>(null);
-  const matchInfoRef = useRef<{ matchId: string; player: Owner; userId: string; displayName: string; elo: number } | null>(null);
+  const matchInfoRef = useRef<{ matchId: string; player: Owner; userId: string; displayName: string; elo: number; gameMode?: GameMode } | null>(null);
   const joinInfoRef = useRef<{ userId: string; displayName: string; elo: number } | null>(null);
 
   // Cleanup on unmount
@@ -135,7 +138,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     }
   }, []);
 
-  const joinQueue = useCallback((userId: string, displayName: string, elo: number) => {
+  const joinQueue = useCallback((userId: string, displayName: string, elo: number, gameMode?: GameMode) => {
     setPhase('queuing');
     setError(null);
     joinInfoRef.current = { userId, displayName, elo };
@@ -150,7 +153,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     queueWs.current = ws;
 
     ws.onopen = () => {
-      const msg: ClientMessage = { type: 'JOIN_QUEUE', userId, displayName, elo };
+      const msg: ClientMessage = { type: 'JOIN_QUEUE', userId, displayName, elo, ...(gameMode ? { gameMode } : {}) };
       ws.send(JSON.stringify(msg));
     };
 
@@ -169,12 +172,14 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
         setPhase('connecting');
         setMyPlayer(data.player);
         setOpponentName(data.opponentName);
+        if (data.gameMode) setGameMode(data.gameMode);
         matchInfoRef.current = {
           matchId: data.matchId,
           player: data.player,
           userId,
           displayName,
           elo,
+          gameMode: data.gameMode,
         };
       }
 
@@ -204,6 +209,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
       userId: info.userId,
       displayName: info.displayName,
       elo: String(info.elo),
+      ...(info.gameMode ? { gameMode: info.gameMode } : {}),
     });
 
     const ws = new WebSocket(`${SERVER_URL}/api/match/${info.matchId}?${params}`);
@@ -266,6 +272,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
       }
 
       if (data.type === 'GAME_END') {
+        if (data.gameMode) setGameMode(data.gameMode);
         setEndResult({
           winner: data.winner,
           toppedOut: data.toppedOut,
@@ -280,6 +287,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
           p2Name: data.p2Name,
           p1Elo: data.p1Elo,
           p2Elo: data.p2Elo,
+          gameMode: data.gameMode,
         });
         setRematchState('idle');
         setRematchInvite(null);
@@ -392,6 +400,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
     setLobbyCount(0);
     setMyPlayer(null);
     setOpponentName(null);
+    setGameMode(null);
     setGameState(null);
     setEndResult(null);
     setError(null);
@@ -403,7 +412,7 @@ export function useMultiplayer(): [MultiplayerState, MultiplayerActions] {
   }, []);
 
   return [
-    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameState, endResult, error, confirmInfo, countdownInfo, rematchState, rematchInvite, rematchDeclineReason },
+    { phase, queueSize, lobbyCount, myPlayer, opponentName, gameMode, gameState, endResult, error, confirmInfo, countdownInfo, rematchState, rematchInvite, rematchDeclineReason },
     { connectLobby, disconnectLobby, joinQueue, leaveQueue, confirm, rematch, acceptRematch, rejectRematch, quit, sendAction, reset },
   ];
 }

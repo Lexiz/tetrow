@@ -87,6 +87,7 @@ export default function App() {
           r.scores[0], r.scores[1], r.winner,
           r.matchId, r.durationMs,
           r.stats,
+          mpState.gameMode ?? undefined,
         ).then(() => {
           // Refresh profile
           getOrCreateProfile(user.uid, user.displayName || 'Player', user.photoURL)
@@ -197,13 +198,20 @@ export default function App() {
             losses={profile?.losses ?? 0}
             draws={profile?.draws ?? 0}
             gamesPlayed={profile?.gamesPlayed ?? 0}
+            eloBlind={profile?.eloBlind}
+            winsBlind={profile?.winsBlind}
+            lossesBlind={profile?.lossesBlind}
+            drawsBlind={profile?.drawsBlind}
+            gamesPlayedBlind={profile?.gamesPlayedBlind}
             matchPhase={mpState.phase}
             queueSize={mpState.queueSize}
             opponentName={mpState.opponentName}
             error={mpState.error}
-            onFindMatch={() => {
+            onFindMatch={(gameMode) => {
               if (user && profile) {
-                mpActions.joinQueue(user.uid, user.displayName || 'Player', profile.elo);
+                const isBlind = gameMode === 'blind';
+                const queueElo = isBlind ? (profile.eloBlind ?? 1200) : profile.elo;
+                mpActions.joinQueue(user.uid, user.displayName || 'Player', queueElo, gameMode);
               }
             }}
             onCancelSearch={mpActions.leaveQueue}

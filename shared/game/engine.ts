@@ -29,6 +29,9 @@ export interface GameState {
   // One queued "next" piece per player — shown in preview
   p1Next: TetrominoType;
   p2Next: TetrominoType;
+  // Blind mode: second queued piece per player (shown only to the owning player)
+  p1Next2?: TetrominoType;
+  p2Next2?: TetrominoType;
 
   scores: [number, number];
 
@@ -273,6 +276,30 @@ function doLock(state: GameState): GameState {
     }
 
     // Draw a replacement next for this player
+    // Blind mode: shift next2 → next, draw fresh next2
+    if (state.gameMode === 'blind') {
+      const draw1 = drawNext(state);
+      const p1Next = owner === 1 ? (state.p1Next2 ?? draw1.next) : state.p1Next;
+      const p2Next = owner === 2 ? (state.p2Next2 ?? draw1.next) : state.p2Next;
+      const p1Next2 = owner === 1 ? draw1.next : state.p1Next2;
+      const p2Next2 = owner === 2 ? draw1.next : state.p2Next2;
+      return {
+        ...state,
+        board,
+        active: owner,
+        piece: nextPiece,
+        isGrounded: grounded(nextPiece, board),
+        lockResets: 0,
+        bag: draw1.bag,
+        bagHead: draw1.bagHead,
+        p1Next, p2Next, p1Next2, p2Next2,
+        scores, p2HasPlaced, lastClear,
+        clearedRows: clearedRowIndices,
+        stats, piecesRemaining,
+        isBonusTurn: true,
+      };
+    }
+
     const draw1 = drawNext(state);
     const p1Next = owner === 1 ? draw1.next : state.p1Next;
     const p2Next = owner === 2 ? draw1.next : state.p2Next;
@@ -312,7 +339,7 @@ function doLock(state: GameState): GameState {
   }
 
   // Proactively extend the board if pieces are near the top (hundred/fivemin modes)
-  if (state.gameMode !== 'classic') {
+  if (state.gameMode === 'hundred' || state.gameMode === 'fivemin') {
     let highestRow = board.length;
     for (let r = 0; r < board.length; r++) {
       if (board[r]!.some(c => c !== null)) { highestRow = r; break; }
@@ -332,6 +359,31 @@ function doLock(state: GameState): GameState {
 
   // Draw one replacement "next" piece for the now-active player (whose next was just consumed/spawned).
   // The locking player's next stays unchanged — they already saw it during their turn.
+  // Blind mode: shift the now-active player's next2 → next, draw fresh next2
+  if (state.gameMode === 'blind') {
+    const draw1 = drawNext(state);
+    // nextActive's next was consumed (spawned). Shift their next2 → next, draw new next2.
+    const p1Next = nextActive === 1 ? (state.p1Next2 ?? draw1.next) : state.p1Next;
+    const p2Next = nextActive === 2 ? (state.p2Next2 ?? draw1.next) : state.p2Next;
+    const p1Next2 = nextActive === 1 ? draw1.next : state.p1Next2;
+    const p2Next2 = nextActive === 2 ? draw1.next : state.p2Next2;
+    return {
+      ...state,
+      board,
+      active: nextActive,
+      piece: nextPiece,
+      isGrounded: grounded(nextPiece, board),
+      lockResets: 0,
+      bag: draw1.bag,
+      bagHead: draw1.bagHead,
+      p1Next, p2Next, p1Next2, p2Next2,
+      scores, p2HasPlaced, lastClear,
+      clearedRows: clearedRowIndices,
+      stats, piecesRemaining,
+      isBonusTurn: false,
+    };
+  }
+
   const draw1 = drawNext(state);
   const bag = draw1.bag;
   const bagHead = draw1.bagHead;
@@ -436,8 +488,9 @@ export function createInitialState(gameMode: GameMode = 'classic'): GameState {
   // bag[0] = P1's first piece (current)
   // bag[1] = P2's next preview
   // bag[2] = P1's next preview
-  // bag[3+] = future draws
+  // Blind mode also draws: bag[3] = P1's next2, bag[4] = P2's next2
   const piece = spawnPiece(bag[0]!);
+  const isBlind = gameMode === 'blind';
   return {
     board: emptyBoard(),
     active: 1,
@@ -445,9 +498,10 @@ export function createInitialState(gameMode: GameMode = 'classic'): GameState {
     isGrounded: false,
     lockResets: 0,
     bag,
-    bagHead: 3,
+    bagHead: isBlind ? 5 : 3,
     p1Next: bag[2]!,
     p2Next: bag[1]!,
+    ...(isBlind ? { p1Next2: bag[3]!, p2Next2: bag[4]! } : {}),
     scores: [0, 0],
     phase: 'playing',
     toppedOut: [false, false],

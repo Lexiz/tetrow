@@ -59,6 +59,9 @@ export default function MultiplayerGameScreen({ gameState, myPlayer, myName, opp
           bandIndex={game.p1BandIdx}
           nextPiece={game.p1Next}
           active={game.active === 1 && !game.ended}
+          blindMode={game.gameMode === 'blind'}
+          isOpponent={myPlayer !== 1}
+          nextPiece2={myPlayer === 1 ? game.myNext2 : undefined}
         />
         <Divider activePlayer={game.ended ? 1 : game.active} />
 
@@ -154,6 +157,9 @@ export default function MultiplayerGameScreen({ gameState, myPlayer, myName, opp
           bandIndex={game.p2BandIdx}
           nextPiece={game.p2Next}
           active={game.active === 2 && !game.ended}
+          blindMode={game.gameMode === 'blind'}
+          isOpponent={myPlayer !== 2}
+          nextPiece2={myPlayer === 2 ? game.myNext2 : undefined}
         />
       </div>
 
